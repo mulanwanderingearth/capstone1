@@ -1,24 +1,28 @@
 // import useTheme from "@/hooks/useTheme";
 import { useRouter } from 'expo-router';
 import { useState } from "react";
-import { StyleSheet, Text, TextInput, View, FlatList, Image } from "react-native";
+import { StyleSheet, Text, TextInput, View, FlatList, Image, TouchableOpacity } from "react-native";
 import axios from "axios";
 
 // const router = useRouter();
 const apiUrl = process.env.EXPO_PUBLIC_API_URL
 const apiKey = process.env.EXPO_PUBLIC_API_KEY
+
 export default function Index() {
   // const { toggleDarkMode } = useTheme();
   const [text, setText] = useState('');
-  const [recipes, setRecipes] = useState([])
+  const [recipes, setRecipes] = useState([]);
+  const router = useRouter();
 
-  // call api to get the recipes by user's input of ingredient
+
+  // call api to search the recipes by user's input of ingredient
   const getSearchedApi = () => {
     return axios.get(`${apiUrl}`, {
       params: {
         includeIngredients: text,
         addRecipeInformation: true,
         number: 10,
+        instructionsRequired: true,
         apiKey: apiKey
       }
     })
@@ -29,6 +33,8 @@ export default function Index() {
 
 
 
+
+  //hand the api data
   const handleSearch = () => {
     return getSearchedApi()
       .then(recipes => {
@@ -36,18 +42,20 @@ export default function Index() {
       })
       .catch(error => {
         console.log(error);
-        alert('搜索失败: ' + error.message);
+        alert('failed: ' + error.message);
       })
   }
 
 
 
   return (
+
     <View style={styles.container}>
+
 
       <View style={styles.searchContainer}>
         <TextInput
-          placeholder="Search for Recipe!"
+          placeholder="🔍Search for Recipes!"
           onChangeText={newText => setText(newText)}
           value={text}
           style={styles.input}
@@ -56,24 +64,40 @@ export default function Index() {
         />
       </View>
 
+      <View style={styles.toggleContainer}>
+        <TouchableOpacity >
+          <Text>Title</Text>
+        </TouchableOpacity>
+        <TouchableOpacity>
+          <Text>Ingredient</Text>
+        </TouchableOpacity>
+
+      </View>
+
       <FlatList
         style={styles.flatListContainer}
         data={recipes}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <View style={styles.recipeCard}>
-            <Image
-              source={{ uri: item.image }}
-              style={styles.recipeImage}
-            />
-            <Text style={styles.recipeTitle}>{item.title}</Text>
-            <Text style={styles.recipeTime}>⏱ {item.readyInMinutes} mins</Text>
-          </View>
+          <TouchableOpacity onPress={() => router.push({
+            pathname: '/recipe-detail',
+            params: { recipe: JSON.stringify(item) }
+          })}>
+            <View style={styles.recipeCard}>
+              <Image
+                source={{ uri: item.image }}
+                style={styles.recipeImage}
+              />
+              <Text style={styles.recipeTitle}>{item.title}</Text>
+              <Text style={styles.recipeTime}>⏱ {item.readyInMinutes} mins</Text>
+            </View>
+          </TouchableOpacity>
 
         )}
         ListEmptyComponent={<Text style={styles.emptyText}>No result, please try with other words!</Text>}
       />
     </View>
+
   );
 }
 
@@ -81,13 +105,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "coral",
-    marginTop: 100
+    // marginTop: 20
+
   },
 
   searchContainer: {
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: 'white',
+
+
+
   },
 
   flatListContainer: {
@@ -100,7 +127,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 10,
     borderRadius: 8,
+    backgroundColor: 'white',
+    marginTop: 50,
   },
+  toggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+  },
+
   recipeCard: {
     backgroundColor: 'white',
     marginBottom: 15,
