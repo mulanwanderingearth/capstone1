@@ -12,33 +12,36 @@ export default function Index() {
   // const { toggleDarkMode } = useTheme();
   const [text, setText] = useState('');
   const [recipes, setRecipes] = useState([]);
+  const [searchType, setSearchType] = useState('title')
+
   const router = useRouter();
 
 
   // call api to search the recipes by user's input of ingredient
-  const getSearchedApi = () => {
-    return axios.get(`${apiUrl}`, {
-      params: {
-        includeIngredients: text,
-        addRecipeInformation: true,
-        number: 10,
-        instructionsRequired: true,
-        apiKey: apiKey
-      }
-    })
+  const getSearchedApi = (type) => {
+    let params = {
+      addRecipeInformation: true,
+      number: 1,
+      apiKey: apiKey
+    }
+    if (type === 'title') {
+      params.titleMatch = text;
+    } else {
+      params.includeIngredients = text;
+    }
+    return axios.get(`${apiUrl}/complexSearch`, { params })
       .then(response => response.data.results)
       .catch(error => console.log(error));
   };
 
-
-
-
+ 
 
   //hand the api data
-  const handleSearch = () => {
-    return getSearchedApi()
+  const handleSearch = (type) => {
+    return getSearchedApi(type)
       .then(recipes => {
         setRecipes(recipes)
+        console.log(type)
       })
       .catch(error => {
         console.log(error);
@@ -46,32 +49,42 @@ export default function Index() {
       })
   }
 
-
-
   return (
 
     <View style={styles.container}>
-
-
       <View style={styles.searchContainer}>
         <TextInput
           placeholder="🔍Search for Recipes!"
           onChangeText={newText => setText(newText)}
           value={text}
           style={styles.input}
-          onSubmitEditing={handleSearch}
+          onSubmitEditing={() => handleSearch(searchType)}
           returnKeyType="search"
         />
       </View>
 
       <View style={styles.toggleContainer}>
-        <TouchableOpacity >
+        <TouchableOpacity
+          onPress={() => {
+            setSearchType('title')
+            if (text) {
+              handleSearch('title')
+            }
+          }}
+          style={[styles.toggleBtn, searchType === 'title' && styles.active]}>
           <Text>Title</Text>
         </TouchableOpacity>
-        <TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => {
+            setSearchType('ingredient')
+            if (text) {
+              handleSearch('ingredient')
+            }
+          }}
+          style={[styles.toggleBtn, searchType === 'ingredient' && styles.active]}>
           <Text>Ingredient</Text>
         </TouchableOpacity>
-
       </View>
 
       <FlatList
@@ -94,7 +107,7 @@ export default function Index() {
           </TouchableOpacity>
 
         )}
-        ListEmptyComponent={<Text style={styles.emptyText}>No result, please try with other words!</Text>}
+        ListEmptyComponent={<Text style={styles.emptyText}>No recipes found.</Text>}
       />
     </View>
 
@@ -105,7 +118,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "coral",
-    // marginTop: 20
+
 
   },
 
@@ -133,6 +146,18 @@ const styles = StyleSheet.create({
   toggleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-evenly',
+    marginBottom: 10,
+  },
+  toggleBtn: {
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#e0e0e0',  // 未选中的颜色
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  active: {
+    backgroundColor: '#007AFF',  // 选中的颜色
+    borderColor: '#007AFF',
   },
 
   recipeCard: {
@@ -163,7 +188,8 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    color: '#999',
+
+    fontSize: 20,
     marginTop: 20,
   },
 })
