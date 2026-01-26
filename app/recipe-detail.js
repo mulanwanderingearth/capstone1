@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image } from 'react-native';
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { stripHtml } from './utils/htmlUtils';
 
 
 // const router = useRouter();
@@ -14,15 +15,6 @@ export default function RecipeDetail() {
   const recipe = JSON.parse(params.recipe);
 
   const [recipeDetail, setRecipeDetail] = useState();
-
-  const stripHtml = (html) => {
-    return html
-      .replace(/<[^>]*>/g, '')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&amp;/g, '&');
-  };
 
   useEffect(() => {
     const getRecipeDetail = () => {

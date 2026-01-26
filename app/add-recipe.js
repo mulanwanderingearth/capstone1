@@ -2,31 +2,50 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View , Alert} from 'react-native';
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/firebase/config"; 
+import { db } from "@/firebase/config";
+import { stripHtml } from './utils/htmlUtils';
 
 export default function AddRecipe() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const recipe = params.recipe ? JSON.parse(params.recipe) : {};
-  const [savedRecipe, setSavedRecipe] = useState(recipe);
+  const [savedRecipe, setSavedRecipe] = useState(() => ({
+    ...recipe,
+    summary: stripHtml(recipe.summary),
+  }));
   const handleChange=(field, value)=>{
     setSavedRecipe(prev => ({
         ...prev,
         [field]:value
     }))};
 
+
  const handleSave = async() => {
     try {
             const userId = "testUser";
             const ref = collection(db, "users", userId, "savedRecipes");
-            await addDoc(ref, savedRecipe)
+            const cleanData = {
+              id: savedRecipe.id,
+              title: savedRecipe.title,
+              image: savedRecipe.image,
+              servings: savedRecipe.servings || null,
+              sourceName: savedRecipe.sourceName,
+              preparationMinutes: savedRecipe.preparationMinutes || null,
+              cookingMinutes: savedRecipe.cookingMinutes || null,
+              readyInMinutes: savedRecipe.readyInMinutes || null,
+              summary: savedRecipe.summary,
+              extendedIngredients: savedRecipe.extendedIngredients || [],
+              analyzedInstructions:savedRecipe.analyzedInstructions || [],
+              notes: savedRecipe.notes || null,
+              createdAt: serverTimestamp(),
+            };
+            
+            await addDoc(ref, cleanData)
             Alert.alert("Success", `You just saved a recipe! `);
         } catch (err) {
             console.error(err);
             Alert.alert("Error", String(err));
-        }
-
- }
+        }}
  
  
   return (
@@ -34,18 +53,14 @@ export default function AddRecipe() {
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => {
                     router.back();
-                    
-
-                }
-
-                }>
-                    <Text style={styles.headerButton}>CANCEL</Text>
+            }}>
+                 <Text style={styles.headerButton}>CANCEL</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity onPress={() => {
                     router.push({ pathname: '/recipe'})
                     handleSave();}
-        }>
+                }>
                     <Text style={styles.headerButton}>SAVE THIS RECIPE</Text>
                 </TouchableOpacity>
             </View>
@@ -61,7 +76,7 @@ export default function AddRecipe() {
                     <TextInput style={styles.input}
                     value={savedRecipe.title || ''} 
                     onChangeText={(value)=> handleChange('title',value)}
-/>
+                    />
                 </View>
 
                 <View style={styles.field}>
@@ -69,14 +84,6 @@ export default function AddRecipe() {
                     <TextInput style={styles.input}
                     value={savedRecipe.sourceName || ''}
                     onChangeText={(value)=> handleChange('sourceName',value)}
-                    />
-                </View>
-
-                <View style={styles.field}>
-                    <Text style={styles.label}>CATEGORIES</Text>
-                    <TextInput style={styles.input}
-                    value={savedRecipe.categories || ''}
-                    onChangeText={(value)=> handleChange('categories',value)}
                     />
                 </View>
 
@@ -114,7 +121,7 @@ export default function AddRecipe() {
 
                 <View style={styles.field}>
                     <Text style={styles.label}>DESCRIPTION</Text>
-                    <TextInput style={styles.input} multiline={true} numberOfLines={8}
+                    <TextInput style={styles.input} multiline={true} numberOfLines={15}
                     value={savedRecipe.summary || ''}
                     onChangeText={(value)=> handleChange('summary',value)}
                     />
@@ -122,7 +129,7 @@ export default function AddRecipe() {
 
                 <View style={styles.field}>
                     <Text style={styles.label}>INGREDIENTS</Text>
-                    <TextInput style={styles.input} multiline={true} numberOfLines={8}
+                    <TextInput style={styles.input} multiline={true} numberOfLines={12}
                     value={savedRecipe.extendedIngredients?.map(item => item.original).join('\n') || ''}
                     onChangeText={(value)=> handleChange('extendedIngredients',value)}
                     />
@@ -130,27 +137,22 @@ export default function AddRecipe() {
 
                 <View style={styles.field}>
                     <Text style={styles.label}>INSTRUCTIONS</Text>
-                    <TextInput style={styles.input} multiline={true} numberOfLines={8}
-                    value={savedRecipe.instructions || ''}
-                    onChangeText={(value)=> handleChange('instructions',value)}
+                    <TextInput style={styles.input} multiline={true} numberOfLines={12}
+                    value={savedRecipe.analyzedInstructions?.[0]?.steps.map(item =>
+          `${item.number}. ${item.step}`).join('\n') || ''}
+                    onChangeText={(value)=> handleChange('analyzedInstructions',value)}
                     />
                 </View>
 
                 <View style={styles.field}>
                     <Text style={styles.label}>NOTES</Text>
-                    <TextInput style={styles.input} multiline={true} numberOfLines={5}
+                    <TextInput style={styles.input} multiline={true} numberOfLines={12}
                     value={savedRecipe.notes || ''}
                     onChangeText={(value)=> handleChange('notes',value)}
                     />
                 </View>
 
-                <View style={styles.field}>
-                    <Text style={styles.label}>NUTRITION</Text>
-                    <TextInput style={styles.input}
-                    value={savedRecipe.nutrition || ''}
-                    onChangeText={(value)=> handleChange('nutrition',value)}
-                    />
-                </View>
+               
             </ScrollView>
         </View>
     )
@@ -161,15 +163,14 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: 'coral',
     },
-    header: {
-       
-    flexDirection: 'row',          
-    justifyContent: 'space-between', 
-    alignItems: 'center',           
-    paddingTop: 10,
-    paddingHorizontal: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    header: {  
+      flexDirection: 'row',          
+      justifyContent: 'space-between', 
+      alignItems: 'center',           
+      paddingTop: 10,
+      paddingHorizontal: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: '#eee',
 
     },
     headerButton: {
