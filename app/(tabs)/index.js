@@ -118,21 +118,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "coral",
-
-
   },
 
   searchContainer: {
     paddingHorizontal: 20,
     paddingVertical: 15,
-
-
-
   },
 
   flatListContainer: {
     flex: 1,
   },
+
   input: {
     width: '100%',
     height: 40,
@@ -143,11 +139,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     marginTop: 50,
   },
+
   toggleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     marginBottom: 10,
   },
+
   toggleBtn: {
     padding: 10,
     borderRadius: 8,
@@ -155,6 +153,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
   },
+
   active: {
     backgroundColor: '#007AFF',  // 选中的颜色
     borderColor: '#007AFF',
@@ -188,7 +187,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-
     fontSize: 20,
     marginTop: 20,
   },

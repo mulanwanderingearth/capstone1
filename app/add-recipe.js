@@ -1,9 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View , Alert} from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, Image,TouchableOpacity, View , Alert} from 'react-native';
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/firebase/config";
-import { stripHtml } from './utils/htmlUtils';
+import { stripHtml } from '@/utils/htmlUtils';
 
 export default function AddRecipe() {
   const router = useRouter();
@@ -68,7 +68,7 @@ export default function AddRecipe() {
             <ScrollView style={styles.scrollView}>
                 <View style={styles.field}>
                     <Text style={styles.label}>IMAGES</Text>
-                    <TextInput style={styles.input} />
+                    <Image source={{uri:savedRecipe.image}} style={styles.image} />
                 </View>
 
                 <View style={styles.field}>
@@ -182,6 +182,9 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 15,
     },
+    image :{ 
+        width: 200, 
+        height: 200 },
     field: {
         marginBottom: 15,
     },

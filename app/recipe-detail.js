@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image } from 'react-native';
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { stripHtml } from './utils/htmlUtils';
+import { stripHtml } from '@/utils/htmlUtils';
 
 
 // const router = useRouter();

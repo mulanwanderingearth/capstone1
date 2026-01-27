@@ -1,4 +1,3 @@
-// 移除HTML标签和解码实体
 export const stripHtml = (html) => {
   if (!html) return html;
   return html
