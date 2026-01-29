@@ -1,27 +1,28 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, Image,TouchableOpacity, View , Alert} from 'react-native';
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, collection, addDoc, updateDoc,serverTimestamp } from "firebase/firestore";
 import { db } from "@/firebase/config";
-import { stripHtml } from '@/utils/htmlUtils';
+import { stripHtml } from '../utils/htmlUtils';
 
 export default function AddRecipe() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const recipe = params.recipe ? JSON.parse(params.recipe) : {};
+  const isEditing = !!recipe.docId;
   const [savedRecipe, setSavedRecipe] = useState(() => ({
     ...recipe,
     summary: stripHtml(recipe.summary),
   }));
+  
   const handleChange=(field, value)=>{
     setSavedRecipe(prev => ({
         ...prev,
         [field]:value
     }))};
 
-
  const handleSave = async() => {
-    try {
+    try { 
             const userId = "testUser";
             const ref = collection(db, "users", userId, "savedRecipes");
             const cleanData = {
@@ -39,14 +40,20 @@ export default function AddRecipe() {
               notes: savedRecipe.notes || null,
               createdAt: serverTimestamp(),
             };
+
+            if (isEditing) {
+                await updateDoc(doc(db,'users','testUser','savedRecipes',recipe.docId),cleanData);
+                Alert.alert("Success! You update a recipe!")
+                router.push('./(tabs)/recipe');
+            }else{
             
             await addDoc(ref, cleanData)
+            router.back();
             Alert.alert("Success", `You just saved a recipe! `);
-        } catch (err) {
+        }}catch (err) {
             console.error(err);
             Alert.alert("Error", String(err));
         }}
- 
  
   return (
         <View style={styles.container}>
@@ -58,7 +65,6 @@ export default function AddRecipe() {
                 </TouchableOpacity>
                 
                 <TouchableOpacity onPress={() => {
-                    router.push({ pathname: '/recipe'})
                     handleSave();}
                 }>
                     <Text style={styles.headerButton}>SAVE THIS RECIPE</Text>
@@ -139,7 +145,7 @@ export default function AddRecipe() {
                     <Text style={styles.label}>INSTRUCTIONS</Text>
                     <TextInput style={styles.input} multiline={true} numberOfLines={12}
                     value={savedRecipe.analyzedInstructions?.[0]?.steps.map(item =>
-          `${item.number}. ${item.step}`).join('\n') || ''}
+                        `${item.number}. ${item.step}`).join('\n') || ''}
                     onChangeText={(value)=> handleChange('analyzedInstructions',value)}
                     />
                 </View>
@@ -150,9 +156,7 @@ export default function AddRecipe() {
                     value={savedRecipe.notes || ''}
                     onChangeText={(value)=> handleChange('notes',value)}
                     />
-                </View>
-
-               
+                </View>  
             </ScrollView>
         </View>
     )
@@ -171,7 +175,6 @@ const styles = StyleSheet.create({
       paddingHorizontal: 15,
       borderBottomWidth: 1,
       borderBottomColor: '#eee',
-
     },
     headerButton: {
         fontSize: 18,

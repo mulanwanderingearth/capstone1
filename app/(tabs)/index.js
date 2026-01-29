@@ -50,7 +50,6 @@ export default function Index() {
   }
 
   return (
-
     <View style={styles.container}>
       <View style={styles.searchContainer}>
         <TextInput

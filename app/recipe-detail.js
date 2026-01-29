@@ -1,8 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, ScrollView, StyleSheet, Image } from 'react-native';
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { stripHtml } from '@/utils/htmlUtils';
+import { doc, deleteDoc} from "firebase/firestore";
+import { db } from "@/firebase/config";
 
 
 // const router = useRouter();
@@ -13,8 +15,57 @@ export default function RecipeDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const recipe = JSON.parse(params.recipe);
-
+  const isFromDatabase = !!recipe.docId;
   const [recipeDetail, setRecipeDetail] = useState();
+
+  const showMenu=()=>{
+    Alert.alert(
+      'Menu',
+      'Choose an action',
+      [
+    {
+      text: 'Edit',
+      onPress: () => handleEdit(recipeDetail.docId),
+    },
+    {
+      text: 'Delete',
+      onPress:handleDelete,
+      
+      style: 'destructive'  
+    },
+    {
+      text: 'Cancel', 
+      style: 'cancel'    
+    }
+  ])}
+  const handleEdit = async() => {
+    router.push({
+      pathname:'./add-recipe',
+      params:{recipe:JSON.stringify(recipe)}
+    });
+  }
+  const handleDelete = () => {
+    Alert.alert(
+      'Are you sure you want to delete this recipe?',
+      '',
+      [
+        {text:'Cancel',style:'cancel'},
+        {
+          text:'Delete', 
+          onPress: async() =>{
+            try {
+              await deleteDoc(doc(db,'users','testUser','savedRecipes',recipe.docId))
+              Alert.alert('Successfully deleted!')
+              router.back();
+            } catch (err){
+              Alert.alert('Error', String(err));
+            }},
+        style:'distructive'
+      }
+      ]
+    )
+  }
+
 
   useEffect(() => {
     const getRecipeDetail = () => {
@@ -32,12 +83,19 @@ export default function RecipeDetail() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
+        {!isFromDatabase &&
         <TouchableOpacity onPress={() => router.push({
           pathname: '/add-recipe',
           params: { recipe: JSON.stringify(recipeDetail) }
         })}>
           <Text style={styles.backButton}>ADD THIS RECIPE</Text>
-        </TouchableOpacity>
+        </TouchableOpacity>}
+         {isFromDatabase && (
+    <TouchableOpacity onPress={() => showMenu()}>
+      <Text style={styles.menuButton}>⋯</Text>
+    </TouchableOpacity>
+  )}
+
       </View>
 
 
@@ -50,9 +108,16 @@ export default function RecipeDetail() {
         <Text style={styles.text}>📖  {recipe.sourceName}</Text>
         <Text style={styles.text}>👥 Serves:{recipe.servings}</Text>
         <Text style={styles.text}>⏰Total time:{recipe.readyInMinutes} mins</Text>
-        <TouchableOpacity onPress={() => router.back()}>
+        {recipeDetail && (
+          <TouchableOpacity 
+            onPress={() => router.push({
+            pathname: '/groceries',
+            params: { groceryItems: JSON.stringify(recipeDetail.extendedIngredients) 
+            }})}
+           >
           <Text style={styles.backButton}>Add Groceries</Text>
-        </TouchableOpacity>
+          </TouchableOpacity>)}
+        
         <Text style={styles.text}>{stripHtml(recipe.summary)} </Text>
         <Text style={styles.text}>🧂Ingredients:{'\n'}{recipeDetail?.extendedIngredients?.map(item => item.original).join('\n')}</Text>
         <Text style={styles.text}>👨‍🍳 Instructions:{'\n'}{recipeDetail?.analyzedInstructions?.[0]?.steps.map(item =>
@@ -81,6 +146,11 @@ const styles = StyleSheet.create({
   },
   backButton: {
     fontSize: 18,
+    color: '#007AFF',
+    marginTop: 30
+  },
+  menuButton:{
+     fontSize: 18,
     color: '#007AFF',
     marginTop: 30
   },

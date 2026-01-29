@@ -1,30 +1,37 @@
 
 
-import { collection, getDocs, } from "firebase/firestore";
+import { collection, getDocs,  } from "firebase/firestore";
 import { db } from "@/firebase/config"; 
-import { useRouter } from 'expo-router';
-import { useState, useEffect} from "react";
+import { useRouter,useFocusEffect } from 'expo-router';
+import { useState, React, Alert} from "react";
 import { StyleSheet, Text, TextInput, View, FlatList, Image, TouchableOpacity } from "react-native";
 // import { stripHtml } from '@/utils/htmlUtils';
 
 export default function Recipe() {
     const router = useRouter();
     const [text, setText] = useState('');
-    const [savedRecipes,setSavedRecipes] = useState([])
+    const [savedRecipes,setSavedRecipes] = useState([]);
 
     const getAllSavedRecipes = async()=> {
+
         const querySnapshot = await getDocs(collection(db,"users","testUser","savedRecipes"));
         const recipes = [];
+    try {
         querySnapshot.forEach((doc)=>{
-            recipes.push({id:doc.id, ...doc.data()})
+            recipes.push({docId:doc.id, ...doc.data()})
         });
         setSavedRecipes(recipes);
-       
-    }
-    useEffect(()=>{
-         getAllSavedRecipes();
-        
-},[])
+    }catch(err){
+        console.error(err);
+        Alert.alert("Error", String(err));
+    }};
+
+    useFocusEffect(
+        React.useCallback(()=>{
+             getAllSavedRecipes();
+        },[])
+        );
+
     return (
         <View style={styles.container}>
           <Text style={styles.header}> All </Text>
@@ -43,7 +50,7 @@ export default function Recipe() {
         <FlatList
         style={styles.flatListContainer}
         data={savedRecipes}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.docId.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity onPress={() => router.push({
             pathname: '/recipe-detail',
@@ -56,6 +63,7 @@ export default function Recipe() {
               />
               <Text style={styles.recipeTitle}>{item.title}</Text>
               <Text style={styles.recipeTime}>⏱ {item.readyInMinutes} mins</Text>
+               <Text style={styles.recipeNotes}>✍️{item.notes}</Text>
             </View>
           </TouchableOpacity>
 
@@ -71,13 +79,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "coral",
   },
-header:{
-marginTop: 50,
-borderWidth:1,
-fontSize:20,
-padding:10,
-bold:true,
-
+    header: {
+    marginTop: 50,
+    borderWidth:1,
+    fontSize:20,
+    padding:10,
+    bold:true,
 },
   searchContainer: {
     paddingHorizontal: 20,
@@ -117,6 +124,10 @@ bold:true,
   recipeTime: {
     fontSize: 14,
     color: 'gray',
+  },
+  recipeNotes: {
+    fontSize: 14,
+    color: 'gray'
   },
   emptyText: {
     textAlign: 'center',
