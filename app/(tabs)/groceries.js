@@ -1,28 +1,70 @@
-import { useState } from 'react';
-import {  StyleSheet, Text, FlatList, View, TouchableOpacity, TextInput } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-// import { doc, collection, addDoc, updateDoc,serverTimestamp } from "firebase/firestore";
-// import { db } from "@/firebase/config";
-
-// const groceryItems = [
-//   {
-//     id: "item_001",           // 唯一ID (Firestore会自动生成，这里我们手动编一个)
-//     name: "garlic",           // 食材名
-//     amount: 3,                // 数量
-//     unit: "cloves",           // 单位
-//     meta: "minced",           // 备注/细节 (对应 API 的 meta 或 originalName)
-//     isChecked: false,         // 状态：未买
-//     category: "Produce"       // (可选) 以后你可能想做分类
-//   },
-// ];
-
-
+import { useEffect, useState } from 'react';
+import { Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+// import { useLocalSearchParams, useRouter } from 'expo-router';
+import { db } from "@/firebase/config";
+import { addDoc, collection, deleteDoc, doc, getDocs, serverTimestamp } from "firebase/firestore";
 
 export default function Groceries() {
-  // const router = useRouter();
-  const params = useLocalSearchParams();
-  const groceryItems = params.groceryItems ? JSON.parse(params.groceryItems) : [];
-  const [items, setItems] = useState(groceryItems);
+  const [items, setItems] = useState([]);
+  const[newItem,setNewItem] = useState("");
+  const itemsChecked = items.filter(item => item.checked)
+  const itemsUnchecked = items.filter(item=> !item.checked)
+
+  const getAllGroceries = async () => {
+    const querySnapshot = await getDocs(collection(db, "users", "testUser", "groceryItems"));
+    const allItems = querySnapshot.docs.map(doc => ({
+      id:doc.id,
+      ...doc.data()
+    }));
+    setItems(allItems);
+  }
+  
+  const handleAddNewItem = async() => {
+    const userId = "testUser";
+    const ref = collection(db, "users", userId, "groceryItems");
+    try {
+      await addDoc(ref,{
+        ingredient: newItem,
+        checked: false,
+        createdAt: serverTimestamp(),
+      });
+      setNewItem("");
+      getAllGroceries();
+    } catch (err) {
+      Alert.alert("Error", String(err));
+    }
+  }
+
+  const handleClearAll = async () => { 
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete all grocery items?",
+      [
+        { text: "cancel", style: "cancel" },
+        {
+          text: "delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const querySnapshot = await getDocs(collection(db, "users", "testUser", "groceryItems"));
+              const deletePromises = querySnapshot.docs.map(item =>
+                deleteDoc(doc(db, "users", "testUser", "groceryItems", item.id))
+              );
+              await Promise.all(deletePromises);
+              setItems([]);
+              Alert.alert("Success", "All grocery items have been deleted");
+            } catch (err) {
+              Alert.alert("Error", String(err));
+            }
+          }
+        }
+      ]
+    );
+  }
+
+  useEffect(()=>{
+    getAllGroceries();
+  },[])
 
   return (
     <View style={styles.container}>
@@ -31,16 +73,18 @@ export default function Groceries() {
       <TextInput
       style={styles.input}
       placeholder="Add New Items!"
-      // value={Add new Items}
-      // onChangeText={}
+      value={newItem}
+      onChangeText={newItem=>setNewItem(newItem)}
+      onSubmitEditing={() => handleAddNewItem()}
+      returnKeyType="add"
       />
       </View>
-      {/* two buttons */}
+      
       <View style={styles.clearBottons}>
         <TouchableOpacity>
           <Text>Clear Checked</Text>
            </TouchableOpacity>
-           <TouchableOpacity>
+           <TouchableOpacity onPress={handleClearAll}>
             <Text >Clear All</Text>
            </TouchableOpacity>
          </View>
@@ -48,18 +92,26 @@ export default function Groceries() {
       <View>
          <Text >To Buy</Text>
          <FlatList
-         data={items}
-         keyExtractor={(item)=>item.id.toString()}
+         data={itemsUnchecked}
+         keyExtractor={(item)=>item.id}
          renderItem={({item})=>(
           <View>
-            <Text>{item.original}</Text>
+            <Text>{item.ingredient}</Text>
             </View>
          )}/>
       </View>
 
       <View>
          <Text >In Cart</Text>
-         <FlatList/>
+         <FlatList
+         data={itemsChecked}
+         keyExtractor={(item)=>item.id}
+         renderItem={({item})=>(
+          <View>
+            <Text>{item.ingredient}</Text>
+            </View>
+         )}
+         />
       </View>
 
 

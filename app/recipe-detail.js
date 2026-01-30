@@ -1,10 +1,10 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, TouchableOpacity, Alert, ScrollView, StyleSheet, Image } from 'react-native';
-import { useState, useEffect } from "react";
-import axios from "axios";
-import { stripHtml } from '@/utils/htmlUtils';
-import { doc, deleteDoc} from "firebase/firestore";
 import { db } from "@/firebase/config";
+import { stripHtml } from '@/utils/htmlUtils';
+import axios from "axios";
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { addDoc, collection, deleteDoc, doc, getDocs, serverTimestamp } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 
 // const router = useRouter();
@@ -17,6 +17,7 @@ export default function RecipeDetail() {
   const recipe = JSON.parse(params.recipe);
   const isFromDatabase = !!recipe.docId;
   const [recipeDetail, setRecipeDetail] = useState();
+  const [isRecipeSaved, setIsRecipeSaved] = useState(null);
 
   const showMenu=()=>{
     Alert.alert(
@@ -65,16 +66,50 @@ export default function RecipeDetail() {
       ]
     )
   }
+  const handleSaveGroceries = async() => {
+    try {
+    const userId = "testUser";
+    const ref = collection(db, "users", userId, "groceryItems");
+    const writes = recipeDetail.extendedIngredients.map((item) =>{
+      addDoc(ref,{
+        recipeId: recipe.id,
+        recipeTitle:recipe.title,
+        ingredient:item.original,
+        name:item.name,
+        amount:item.amount,
+        unit:item.unit,
+        checked:false,
+       createdAt: serverTimestamp(),
+      })
+    })
+    await Promise.all(writes);
+    Alert.alert("You successfully added groceries!");
 
+  }catch(err){
+    Alert.alert("Error", String(err));
+  }}
 
   useEffect(() => {
-    const getRecipeDetail = () => {
-      return axios.get(`${apiUrl}/${recipe.id}/information`, { params: { apiKey } })
-        .then(response => setRecipeDetail(response.data))
-        .catch(error => console.log(error));
+    const init = async () => {
+    try {
+      const response = await axios.get(`${apiUrl}/${recipe.id}/information`, { params: { apiKey } });
+      setRecipeDetail(response.data);
+    } catch (error) {
+      console.log(error);
     }
-    getRecipeDetail()
-  }, [recipe.id])
+
+    try {
+      const querySnapshot = await getDocs(collection(db, "users", "testUser", "savedRecipes"));
+      const found = querySnapshot.docs.find((doc) => doc.data().id === recipe.id);
+      setIsRecipeSaved(!!found);
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", String(err));
+    }
+  };
+
+  init();
+  }, [recipe.id]);
 
 
   return (
@@ -83,10 +118,11 @@ export default function RecipeDetail() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
-        {!isFromDatabase &&
-        <TouchableOpacity onPress={() => router.push({
-          pathname: '/add-recipe',
-          params: { recipe: JSON.stringify(recipeDetail) }
+        {!isFromDatabase && !isRecipeSaved &&
+        <TouchableOpacity 
+          onPress={() => router.push({
+            pathname: '/add-recipe',
+            params: { recipe: JSON.stringify(recipeDetail) }
         })}>
           <Text style={styles.backButton}>ADD THIS RECIPE</Text>
         </TouchableOpacity>}
@@ -95,9 +131,7 @@ export default function RecipeDetail() {
       <Text style={styles.menuButton}>⋯</Text>
     </TouchableOpacity>
   )}
-
       </View>
-
 
       <ScrollView>
         <Image
@@ -110,10 +144,13 @@ export default function RecipeDetail() {
         <Text style={styles.text}>⏰Total time:{recipe.readyInMinutes} mins</Text>
         {recipeDetail && (
           <TouchableOpacity 
-            onPress={() => router.push({
+            onPress={() => {router.push({
             pathname: '/groceries',
             params: { groceryItems: JSON.stringify(recipeDetail.extendedIngredients) 
-            }})}
+            
+            }})
+          handleSaveGroceries();
+        }}
            >
           <Text style={styles.backButton}>Add Groceries</Text>
           </TouchableOpacity>)}
