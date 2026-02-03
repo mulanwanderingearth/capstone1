@@ -6,8 +6,6 @@ import { addDoc, collection, deleteDoc, doc, getDocs, serverTimestamp } from "fi
 import { useEffect, useState } from "react";
 import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-
-// const router = useRouter();
 const apiUrl = process.env.EXPO_PUBLIC_API_URL
 const apiKey = process.env.EXPO_PUBLIC_API_KEY
 
@@ -19,30 +17,31 @@ export default function RecipeDetail() {
   const [recipeDetail, setRecipeDetail] = useState();
   const [isRecipeSaved, setIsRecipeSaved] = useState(null);
 
-  const showMenu=()=>{
+  const showMenu = () => {
     Alert.alert(
       'Menu',
       'Choose an action',
       [
-    {
-      text: 'Edit',
-      onPress: () => handleEdit(recipeDetail.docId),
-    },
-    {
-      text: 'Delete',
-      onPress:handleDelete,
-      
-      style: 'destructive'  
-    },
-    {
-      text: 'Cancel', 
-      style: 'cancel'    
-    }
-  ])}
-  const handleEdit = async() => {
+        {
+          text: 'Edit',
+          onPress: () => handleEdit(recipeDetail.docId),
+        },
+        {
+          text: 'Delete',
+          onPress: handleDelete,
+
+          style: 'destructive'
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        }
+      ])
+  }
+  const handleEdit = async () => {
     router.push({
-      pathname:'./add-recipe',
-      params:{recipe:JSON.stringify(recipe)}
+      pathname: './add-recipe',
+      params: { recipe: JSON.stringify(recipe) }
     });
   }
   const handleDelete = () => {
@@ -50,65 +49,67 @@ export default function RecipeDetail() {
       'Are you sure you want to delete this recipe?',
       '',
       [
-        {text:'Cancel',style:'cancel'},
+        { text: 'Cancel', style: 'cancel' },
         {
-          text:'Delete', 
-          onPress: async() =>{
+          text: 'Delete',
+          onPress: async () => {
             try {
-              await deleteDoc(doc(db,'users','testUser','savedRecipes',recipe.docId))
+              await deleteDoc(doc(db, 'users', 'testUser', 'savedRecipes', recipe.docId))
               Alert.alert('Successfully deleted!')
               router.back();
-            } catch (err){
+            } catch (err) {
               Alert.alert('Error', String(err));
-            }},
-        style:'distructive'
-      }
+            }
+          },
+          style: 'distructive'
+        }
       ]
     )
   }
-  const handleSaveGroceries = async() => {
+  const handleSaveGroceries = async () => {
     try {
-    const userId = "testUser";
-    const ref = collection(db, "users", userId, "groceryItems");
-    const writes = recipeDetail.extendedIngredients.map((item) =>{
-      addDoc(ref,{
-        recipeId: recipe.id,
-        recipeTitle:recipe.title,
-        ingredient:item.original,
-        name:item.name,
-        amount:item.amount,
-        unit:item.unit,
-        checked:false,
-       createdAt: serverTimestamp(),
+      const userId = "testUser";
+      const ref = collection(db, "users", userId, "groceryItems");
+      const writes = recipeDetail.extendedIngredients.map((item) => {
+        addDoc(ref, {
+          recipeId: recipe.id,
+          recipeTitle: recipe.title,
+          ingredient: item.original,
+          name: item.name,
+          amount: item.amount,
+          unit: item.unit,
+          checked: false,
+          createdAt: serverTimestamp(),
+        })
       })
-    })
-    await Promise.all(writes);
-    Alert.alert("You successfully added groceries!");
+      await Promise.all(writes);
+      Alert.alert("You successfully added groceries!");
 
-  }catch(err){
-    Alert.alert("Error", String(err));
-  }}
+    } catch (err) {
+      Alert.alert("Error", String(err));
+    }
+  }
 
   useEffect(() => {
     const init = async () => {
-    try {
-      const response = await axios.get(`${apiUrl}/${recipe.id}/information`, { params: { apiKey } });
-      setRecipeDetail(response.data);
-    } catch (error) {
-      console.log(error);
-    }
+      try {
+        const response = await axios.get(`${apiUrl}/${recipe.id}/information`, { params: { apiKey } });
+        setRecipeDetail(response.data);
+      } catch (error) {
+        console.log(error);
+      }
 
-    try {
-      const querySnapshot = await getDocs(collection(db, "users", "testUser", "savedRecipes"));
-      const found = querySnapshot.docs.find((doc) => doc.data().id === recipe.id);
-      setIsRecipeSaved(!!found);
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Error", String(err));
-    }
-  };
+      try {
+        const querySnapshot = await getDocs(collection(db, "users", "testUser", "savedRecipes"));
+        const found = querySnapshot.docs.find((doc) => doc.data().id === recipe.id);
+        setIsRecipeSaved(!!found);
+      } catch (err) {
+        console.error(err);
+        Alert.alert("Error", String(err));
+      }
+    };
 
-  init();
+    init();
   }, [recipe.id]);
 
 
@@ -119,18 +120,18 @@ export default function RecipeDetail() {
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
         {!isFromDatabase && !isRecipeSaved &&
-        <TouchableOpacity 
-          onPress={() => router.push({
-            pathname: '/add-recipe',
-            params: { recipe: JSON.stringify(recipeDetail) }
-        })}>
-          <Text style={styles.backButton}>ADD THIS RECIPE</Text>
-        </TouchableOpacity>}
-         {isFromDatabase && (
-    <TouchableOpacity onPress={() => showMenu()}>
-      <Text style={styles.menuButton}>⋯</Text>
-    </TouchableOpacity>
-  )}
+          <TouchableOpacity
+            onPress={() => router.push({
+              pathname: '/add-recipe',
+              params: { recipe: JSON.stringify(recipeDetail) }
+            })}>
+            <Text style={styles.backButton}>ADD THIS RECIPE</Text>
+          </TouchableOpacity>}
+        {isFromDatabase && (
+          <TouchableOpacity onPress={() => showMenu()}>
+            <Text style={styles.menuButton}>⋯</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView>
@@ -143,18 +144,21 @@ export default function RecipeDetail() {
         <Text style={styles.text}>👥 Serves:{recipe.servings}</Text>
         <Text style={styles.text}>⏰Total time:{recipe.readyInMinutes} mins</Text>
         {recipeDetail && (
-          <TouchableOpacity 
-            onPress={() => {router.push({
-            pathname: '/groceries',
-            params: { groceryItems: JSON.stringify(recipeDetail.extendedIngredients) 
-            
-            }})
-          handleSaveGroceries();
-        }}
-           >
-          <Text style={styles.backButton}>Add Groceries</Text>
+          <TouchableOpacity
+            onPress={() => {
+              router.push({
+                pathname: '/groceries',
+                params: {
+                  groceryItems: JSON.stringify(recipeDetail.extendedIngredients)
+
+                }
+              })
+              handleSaveGroceries();
+            }}
+          >
+            <Text style={styles.backButton}>Add Groceries</Text>
           </TouchableOpacity>)}
-        
+
         <Text style={styles.text}>{stripHtml(recipe.summary)} </Text>
         <Text style={styles.text}>🧂Ingredients:{'\n'}{recipeDetail?.extendedIngredients?.map(item => item.original).join('\n')}</Text>
         <Text style={styles.text}>👨‍🍳 Instructions:{'\n'}{recipeDetail?.analyzedInstructions?.[0]?.steps.map(item =>
@@ -186,8 +190,8 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     marginTop: 30
   },
-  menuButton:{
-     fontSize: 18,
+  menuButton: {
+    fontSize: 18,
     color: '#007AFF',
     marginTop: 30
   },

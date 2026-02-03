@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 // import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from "@/firebase/config";
-import { addDoc, collection, deleteDoc, doc, getDocs, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs,updateDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
 
 export default function Groceries() {
   const [items, setItems] = useState([]);
-  const[newItem,setNewItem] = useState("");
-  const itemsChecked = items.filter(item => item.checked)
-  const itemsUnchecked = items.filter(item=> !item.checked)
+  const [newItem, setNewItem] = useState("");
+  const itemsChecked = items.filter(item => item.checked);
+  const itemsUnchecked = items.filter(item=> !item.checked);
 
   const getAllGroceries = async () => {
     const querySnapshot = await getDocs(collection(db, "users", "testUser", "groceryItems"));
@@ -33,8 +33,33 @@ export default function Groceries() {
     } catch (err) {
       Alert.alert("Error", String(err));
     }
-  }
+  };
+  const handleClearChecked = async ()=> {
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete all grocery items in the cart?",
+      [
+        { text: "cancel", style: "cancel" },
+        {
+          text: "delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const deletePromises = itemsChecked.map(item =>
+                deleteDoc(doc(db, "users", "testUser", "groceryItems", item.id))
+              );
+              await Promise.all(deletePromises);
+              getAllGroceries();
+              Alert.alert("Success", "All grocery items in the cart have been deleted");
+            } catch (err) {
+              Alert.alert("Error", String(err));
+            }
+          }
+        }
+      ]
+    );
 
+  }
   const handleClearAll = async () => { 
     Alert.alert(
       "Confirm Delete",
@@ -60,15 +85,44 @@ export default function Groceries() {
         }
       ]
     );
-  }
+  };
 
+const handleToggleChecked = async(id) => {
+  try {
+    const result = items.map((item)=> {
+      return item.id === id ? { ...item, checked: !item.checked } : item
+  }
+);
+  setItems(result);
+  const currentItem = items.find(item => item.id===id);
+  await updateDoc(doc(db, "users", "testUser", "groceryItems",id),{
+    checked:!currentItem.checked
+  });
+  } catch (err){
+    Alert.alert("Error", String(err));
+  }
+};
   useEffect(()=>{
-    getAllGroceries();
-  },[])
+    const unsubscribe = onSnapshot(
+      collection(db,"users","testUser","groceryItems"),
+      (querySnapshot) => {
+        const allItems =querySnapshot.docs.map(doc =>({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setItems(allItems);
+      },
+      (err)=>{
+        console.log("Error", String(err));
+      }
+    )
+    return ()=>unsubscribe();
+  },[]);
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>groceries</Text>
+      <ScrollView style={styles.scrollContent}>
       <View style={styles.addContainer}>
       <TextInput
       style={styles.input}
@@ -81,7 +135,7 @@ export default function Groceries() {
       </View>
       
       <View style={styles.clearBottons}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleClearChecked}>
           <Text>Clear Checked</Text>
            </TouchableOpacity>
            <TouchableOpacity onPress={handleClearAll}>
@@ -90,32 +144,38 @@ export default function Groceries() {
          </View>
 
       <View>
-         <Text >To Buy</Text>
+         <Text style={styles.sectionTitle}>To Buy</Text>
          <FlatList
          data={itemsUnchecked}
          keyExtractor={(item)=>item.id}
          renderItem={({item})=>(
-          <View>
-            <Text>{item.ingredient}</Text>
+          <View style={styles.itemRow}>
+            <TouchableOpacity onPress={() => handleToggleChecked(item.id)}>
+              <Text style={styles.checkBtn}>☐</Text>
+            </TouchableOpacity>
+            <Text style={styles.itemText}>{item.ingredient}</Text>
             </View>
-         )}/>
+         )}
+         scrollEnabled={false}/>
       </View>
 
       <View>
-         <Text >In Cart</Text>
+         <Text style={styles.sectionTitle}>In Cart</Text>
          <FlatList
          data={itemsChecked}
          keyExtractor={(item)=>item.id}
          renderItem={({item})=>(
-          <View>
-            <Text>{item.ingredient}</Text>
+          <View style={styles.itemRow}>
+            <TouchableOpacity onPress={() => handleToggleChecked(item.id)}>
+              <Text style={styles.checkBtn}>☑</Text>
+            </TouchableOpacity>
+            <Text style={styles.itemTextChecked}>{item.ingredient}</Text>
             </View>
          )}
+         scrollEnabled={false}
          />
       </View>
-
-
-      <FlatList/>
+      </ScrollView>
     
     </View>
   )
@@ -130,6 +190,11 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: 'coral',
     },
+    
+  scrollContent:{
+    flex:1,
+    paddingBottom:20
+  },
     
   header: {
     marginTop: 50,
@@ -164,6 +229,42 @@ clearBottons:{
   alignItems:'center',
   padding:20,
   borderWidth:1
+},
+listContainer:{
+  flex:1,
+  paddingBottom:10
+},
+sectionTitle:{
+  fontSize:18,
+  fontWeight:'bold',
+  marginTop:15,
+  marginBottom:10,
+  marginHorizontal:20,
+  color:'#333'
+},
+itemRow:{
+  flexDirection:'row',
+  alignItems:'center',
+  paddingHorizontal:20,
+  paddingVertical:12,
+  borderBottomWidth:1,
+  borderBottomColor:'#eee'
+},
+checkBtn:{
+  fontSize:20,
+  marginRight:12,
+  padding:4
+},
+itemText:{
+  fontSize:16,
+  color:'#333',
+  flex:1
+},
+itemTextChecked:{
+  fontSize:16,
+  color:'#999',
+  flex:1,
+  textDecorationLine:'line-through'
 }
 })
 

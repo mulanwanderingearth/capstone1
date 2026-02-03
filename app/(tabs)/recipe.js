@@ -13,10 +13,9 @@ export default function Recipe() {
     const [savedRecipes,setSavedRecipes] = useState([]);
 
     const getAllSavedRecipes = async()=> {
-
         const querySnapshot = await getDocs(collection(db,"users","testUser","savedRecipes"));
         const recipes = [];
-    try {
+      try {
         querySnapshot.forEach((doc)=>{
             recipes.push({docId:doc.id, ...doc.data()})
         });

@@ -4,7 +4,6 @@ import { useState } from "react";
 import { StyleSheet, Text, TextInput, View, FlatList, Image, TouchableOpacity } from "react-native";
 import axios from "axios";
 
-// const router = useRouter();
 const apiUrl = process.env.EXPO_PUBLIC_API_URL
 const apiKey = process.env.EXPO_PUBLIC_API_KEY
 
@@ -12,8 +11,7 @@ export default function Index() {
   // const { toggleDarkMode } = useTheme();
   const [text, setText] = useState('');
   const [recipes, setRecipes] = useState([]);
-  const [searchType, setSearchType] = useState('title')
-
+  const [searchType, setSearchType] = useState('title');
   const router = useRouter();
 
 
@@ -33,8 +31,6 @@ export default function Index() {
       .then(response => response.data.results)
       .catch(error => console.log(error));
   };
-
- 
 
   //hand the api data
   const handleSearch = (type) => {
