@@ -1,72 +1,105 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, Image,TouchableOpacity, View , Alert} from 'react-native';
-import { doc, collection, addDoc, updateDoc,serverTimestamp } from "firebase/firestore";
-import { db } from "@/firebase/config";
+import { ScrollView, StyleSheet, Text, TextInput, Image, TouchableOpacity, View, Alert } from 'react-native';
+import { doc, collection, addDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db, storage } from "@/firebase/config";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { stripHtml } from '../utils/htmlUtils';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function AddRecipe() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
-  const recipe = params.recipe ? JSON.parse(params.recipe) : {};
-  const isEditing = !!recipe.docId;
-  const [savedRecipe, setSavedRecipe] = useState(() => ({
-    ...recipe,
-    summary: stripHtml(recipe.summary),
-  }));
-  
-  const handleChange=(field, value)=>{
-    setSavedRecipe(prev => ({
-        ...prev,
-        [field]:value
-    }))};
+    const router = useRouter();
+    const params = useLocalSearchParams();
+    const recipe = params.recipe ? JSON.parse(params.recipe) : {};
+    const isEditing = !!recipe.docId;
+    const [savedRecipe, setSavedRecipe] = useState(() => ({
+        ...recipe,
+        summary: stripHtml(recipe.summary),
+    }));
 
- const handleSave = async() => {
-    try { 
+    const pickImage = async () => {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permissionResult.granted) {
+            Alert.alert('Permission required', 'Permission to access the media library is required.');
+            return;
+        }
+
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images', 'videos'],
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
+        if (!result.canceled) {
+            await uploadImage(result.assets[0].uri);
+        };
+    };
+    const uploadImage = async (uri) => {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        const userId = "testUser";
+        const filename = `users/${userId}/recipes/${Date.now()}.jpg`;
+        const storageRef = ref(storage, filename);
+        await uploadBytes(storageRef, blob);
+        const downloadUrl = await getDownloadURL(storageRef);
+        handleChange('image', downloadUrl);
+    };
+    const handleChange = (field, value) => {
+        setSavedRecipe(prev => ({
+            ...prev,
+            [field]: value
+        }))
+    };
+
+    const handleSave = async () => {
+        try {
             const userId = "testUser";
             const ref = collection(db, "users", userId, "savedRecipes");
             const cleanData = {
-              id: savedRecipe.id,
-              title: savedRecipe.title,
-              image: savedRecipe.image,
-              servings: savedRecipe.servings || null,
-              sourceName: savedRecipe.sourceName,
-              preparationMinutes: savedRecipe.preparationMinutes || null,
-              cookingMinutes: savedRecipe.cookingMinutes || null,
-              readyInMinutes: savedRecipe.readyInMinutes || null,
-              summary: savedRecipe.summary,
-              extendedIngredients: savedRecipe.extendedIngredients || [],
-              analyzedInstructions:savedRecipe.analyzedInstructions || [],
-              notes: savedRecipe.notes || null,
-              createdAt: serverTimestamp(),
+                id: savedRecipe.id,
+                title: savedRecipe.title,
+                image: savedRecipe.image,
+                servings: savedRecipe.servings || null,
+                sourceName: savedRecipe.sourceName,
+                preparationMinutes: savedRecipe.preparationMinutes || null,
+                cookingMinutes: savedRecipe.cookingMinutes || null,
+                readyInMinutes: savedRecipe.readyInMinutes || null,
+                summary: savedRecipe.summary,
+                extendedIngredients: savedRecipe.extendedIngredients || [],
+                analyzedInstructions: savedRecipe.analyzedInstructions || [],
+                notes: savedRecipe.notes || null,
+                createdAt: serverTimestamp(),
             };
 
             if (isEditing) {
-                await updateDoc(doc(db,'users','testUser','savedRecipes',recipe.docId),cleanData);
+                await updateDoc(doc(db, 'users', 'testUser', 'savedRecipes', recipe.docId), cleanData);
                 Alert.alert("Success! You update a recipe!")
                 router.push('./(tabs)/recipe');
-            }else{
-            
-            await addDoc(ref, cleanData)
-            router.back();
-            Alert.alert("Success", `You just saved a recipe! `);
-        }}catch (err) {
+            } else {
+
+                await addDoc(ref, cleanData)
+                router.back();
+                Alert.alert("Success", `You just saved a recipe! `);
+            }
+        } catch (err) {
             console.error(err);
             Alert.alert("Error", String(err));
-        }}
- 
-  return (
+        }
+    }
+
+    return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => {
-                    router.back();
-            }}>
-                 <Text style={styles.headerButton}>CANCEL</Text>
+                <TouchableOpacity
+                    onPress={() => {
+                        router.back();
+                    }}>
+                    <Text style={styles.headerButton}>CANCEL</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity onPress={() => {
-                    handleSave();}
-                }>
+                <TouchableOpacity
+                    onPress={() => {
+                        handleSave();
+                    }}>
                     <Text style={styles.headerButton}>SAVE THIS RECIPE</Text>
                 </TouchableOpacity>
             </View>
@@ -74,89 +107,103 @@ export default function AddRecipe() {
             <ScrollView style={styles.scrollView}>
                 <View style={styles.field}>
                     <Text style={styles.label}>IMAGES</Text>
-                    <Image source={{uri:savedRecipe.image}} style={styles.image} />
+                    <TouchableOpacity style={styles.imageBox} onPress={pickImage}>
+                        {savedRecipe.image ? (
+                            <View>
+                                <Image source={{ uri: savedRecipe.image }} style={styles.image} />
+                                <View style={styles.imageOverlay}>
+                                    <Text style={styles.imageOverlayText}>Tap to change</Text>
+                                </View>
+                            </View>
+                        ) : (
+                            <View style={styles.placeholder}>
+                                <Text style={styles.addImageIcon}>+</Text>
+                                <Text style={styles.addImageText}>Add Image</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.field}>
                     <Text style={styles.label}>TITLE</Text>
                     <TextInput style={styles.input}
-                    value={savedRecipe.title || ''} 
-                    onChangeText={(value)=> handleChange('title',value)}
+                        value={savedRecipe.title || ''}
+                        onChangeText={(value) => handleChange('title', value)}
                     />
                 </View>
 
                 <View style={styles.field}>
                     <Text style={styles.label}>SOURCE</Text>
                     <TextInput style={styles.input}
-                    value={savedRecipe.sourceName || ''}
-                    onChangeText={(value)=> handleChange('sourceName',value)}
+                        value={savedRecipe.sourceName || ''}
+                        onChangeText={(value) => handleChange('sourceName', value)}
                     />
                 </View>
 
                 <View style={styles.field}>
                     <Text style={styles.label}>SERVINGS</Text>
                     <TextInput style={styles.input} keyboardType="numeric"
-                    value={savedRecipe.servings?.toString() || ''}
-                    onChangeText={(value)=> handleChange('servings',value)}
+                        value={savedRecipe.servings?.toString() || ''}
+                        onChangeText={(value) => handleChange('servings', value)}
                     />
                 </View>
 
                 <View style={styles.field}>
                     <Text style={styles.label}>PREP TIME</Text>
                     <TextInput style={styles.input} keyboardType="numeric"
-                    value={savedRecipe.preparationMinutes?.toString() || ''}
-                    onChangeText={(value)=> handleChange('preparationMinutes',value)}
+                        value={savedRecipe.preparationMinutes?.toString() || ''}
+                        onChangeText={(value) => handleChange('preparationMinutes', value)}
                     />
                 </View>
 
                 <View style={styles.field}>
                     <Text style={styles.label}>COOK TIME</Text>
                     <TextInput style={styles.input} keyboardType="numeric"
-                    value={savedRecipe.cookingMinutes?.toString() || ''}
-                    onChangeText={(value)=> handleChange('cookingMinutes',value)}
+                        value={savedRecipe.cookingMinutes?.toString() || ''}
+                        onChangeText={(value) => handleChange('cookingMinutes', value)}
                     />
                 </View>
 
                 <View style={styles.field}>
                     <Text style={styles.label}>TOTAL TIME</Text>
                     <TextInput style={styles.input} keyboardType="numeric"
-                    value={savedRecipe.readyInMinutes?.toString() || ''}
-                    onChangeText={(value)=> handleChange('readyInMinutes',value)}
+                        value={savedRecipe.readyInMinutes?.toString() || ''}
+                        onChangeText={(value) => handleChange('readyInMinutes', value)}
                     />
                 </View>
 
                 <View style={styles.field}>
                     <Text style={styles.label}>DESCRIPTION</Text>
                     <TextInput style={styles.input} multiline={true} numberOfLines={15}
-                    value={savedRecipe.summary || ''}
-                    onChangeText={(value)=> handleChange('summary',value)}
+                        value={savedRecipe.summary || ''}
+                        onChangeText={(value) => handleChange('summary', value)}
                     />
                 </View>
 
                 <View style={styles.field}>
                     <Text style={styles.label}>INGREDIENTS</Text>
                     <TextInput style={styles.input} multiline={true} numberOfLines={12}
-                    value={savedRecipe.extendedIngredients?.map(item => item.original).join('\n') || ''}
-                    onChangeText={(value)=> handleChange('extendedIngredients',value)}
+                        value={savedRecipe.extendedIngredients?.map(item => item.original).join('\n') || ''}
+                        onChangeText={(value) => handleChange('extendedIngredients', value)}
                     />
                 </View>
 
                 <View style={styles.field}>
                     <Text style={styles.label}>INSTRUCTIONS</Text>
                     <TextInput style={styles.input} multiline={true} numberOfLines={12}
-                    value={savedRecipe.analyzedInstructions?.[0]?.steps.map(item =>
-                        `${item.number}. ${item.step}`).join('\n') || ''}
-                    onChangeText={(value)=> handleChange('analyzedInstructions',value)}
+                        value={savedRecipe.analyzedInstructions?.[0]?.steps.map(item =>
+                            `${item.number}. ${item.step}`).join('\n') || ''}
+                        onChangeText={(value) => handleChange('analyzedInstructions', value)}
                     />
                 </View>
 
                 <View style={styles.field}>
                     <Text style={styles.label}>NOTES</Text>
                     <TextInput style={styles.input} multiline={true} numberOfLines={12}
-                    value={savedRecipe.notes || ''}
-                    onChangeText={(value)=> handleChange('notes',value)}
+                        value={savedRecipe.notes || ''}
+                        onChangeText={(value) => handleChange('notes', value)}
                     />
-                </View>  
+                </View>
             </ScrollView>
         </View>
     )
@@ -167,14 +214,14 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: 'coral',
     },
-    header: {  
-      flexDirection: 'row',          
-      justifyContent: 'space-between', 
-      alignItems: 'center',           
-      paddingTop: 10,
-      paddingHorizontal: 15,
-      borderBottomWidth: 1,
-      borderBottomColor: '#eee',
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingTop: 10,
+        paddingHorizontal: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
     },
     headerButton: {
         fontSize: 18,
@@ -185,9 +232,49 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 15,
     },
-    image :{ 
-        width: 200, 
-        height: 200 },
+    image: {
+        width: 120,
+        height: 120,
+        borderRadius: 8,
+    },
+    imageBox: {
+        width: 120,
+        height: 120,
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
+    imageOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingVertical: 4,
+    },
+    imageOverlayText: {
+        color: 'white',
+        fontSize: 10,
+        textAlign: 'center',
+    },
+    placeholder: {
+        width: 120,
+        height: 120,
+        borderRadius: 8,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    addImageIcon: {
+        fontSize: 30,
+        color: 'rgba(255,255,255,0.5)',
+    },
+    addImageText: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.5)',
+        marginTop: 5,
+    },
     field: {
         marginBottom: 15,
     },
