@@ -1,11 +1,11 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, Image, TouchableOpacity, View, Alert } from 'react-native';
-import { doc, collection, addDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db, storage } from "@/firebase/config";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { stripHtml } from '../utils/htmlUtils';
 import * as ImagePicker from 'expo-image-picker';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { useState } from 'react';
+import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { stripHtml } from '../utils/htmlUtils';
 
 export default function AddRecipe() {
     const router = useRouter();
@@ -45,16 +45,53 @@ export default function AddRecipe() {
         handleChange('image', downloadUrl);
     };
     const handleChange = (field, value) => {
+
         setSavedRecipe(prev => ({
             ...prev,
             [field]: value
         }))
     };
 
+     const getIngredientsText = () => {
+        const data = savedRecipe.extendedIngredients;
+        if (!data) return '';
+        if (typeof data === 'string') return data;
+        if (Array.isArray(data)) return data.map(item => item.original).join('\n');
+        return '';
+    };
+
+    // 显示时：安全获取 instructions 文本
+    const getInstructionsText = () => {
+        const data = savedRecipe.analyzedInstructions;
+        if (!data) return '';
+        if (typeof data === 'string') return data;
+        if (Array.isArray(data) && data[0]?.steps) {
+            return data[0].steps.map(item => `${item.number}. ${item.step}`).join('\n');
+        }
+        return '';
+    };
+
     const handleSave = async () => {
         try {
             const userId = "testUser";
             const ref = collection(db, "users", userId, "savedRecipes");
+            
+            let ingredients = savedRecipe.extendedIngredients;
+            if (typeof ingredients === 'string') {
+                ingredients = ingredients.split('\n').filter(line => line.trim()).map(line => ({
+                    original: line.trim()
+                }));
+            }
+
+            let instructions = savedRecipe.analyzedInstructions;
+            if (typeof instructions === 'string') {
+                const steps = instructions.split('\n').filter(line => line.trim()).map((line, index) => ({
+                    number: index + 1,
+                    step: line.replace(/^\d+\.\s*/, '').trim()
+                }));
+                instructions = [{ steps }];
+            }
+            
             const cleanData = {
                 id: savedRecipe.id,
                 title: savedRecipe.title,
@@ -183,7 +220,7 @@ export default function AddRecipe() {
                 <View style={styles.field}>
                     <Text style={styles.label}>INGREDIENTS</Text>
                     <TextInput style={styles.input} multiline={true} numberOfLines={12}
-                        value={savedRecipe.extendedIngredients?.map(item => item.original).join('\n') || ''}
+                        value={getIngredientsText()}
                         onChangeText={(value) => handleChange('extendedIngredients', value)}
                     />
                 </View>
@@ -191,8 +228,7 @@ export default function AddRecipe() {
                 <View style={styles.field}>
                     <Text style={styles.label}>INSTRUCTIONS</Text>
                     <TextInput style={styles.input} multiline={true} numberOfLines={12}
-                        value={savedRecipe.analyzedInstructions?.[0]?.steps.map(item =>
-                            `${item.number}. ${item.step}`).join('\n') || ''}
+                        value={getInstructionsText()}
                         onChangeText={(value) => handleChange('analyzedInstructions', value)}
                     />
                 </View>
