@@ -121,7 +121,7 @@ const handleToggleChecked = async(id) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>groceries</Text>
+      <Text style={styles.header}>Groceries</Text>
       <ScrollView style={styles.scrollContent}>
       <View style={styles.addContainer}>
       <TextInput

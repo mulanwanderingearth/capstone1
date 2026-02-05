@@ -1,20 +1,17 @@
 import { db } from "@/firebase/config";
 import { stripHtml } from '@/utils/htmlUtils';
-import axios from "axios";
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { addDoc, collection, deleteDoc, doc, getDocs, serverTimestamp } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const apiUrl = process.env.EXPO_PUBLIC_API_URL
-const apiKey = process.env.EXPO_PUBLIC_API_KEY
 
 export default function RecipeDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const recipe = JSON.parse(params.recipe);
+  const recipeDetail = recipe;  // 直接使用传过来的完整数据
   const isFromDatabase = !!recipe.docId;
-  const [recipeDetail, setRecipeDetail] = useState();
   const [isRecipeSaved, setIsRecipeSaved] = useState(null);
 
   const showMenu = () => {
@@ -91,14 +88,7 @@ export default function RecipeDetail() {
   }
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        const response = await axios.get(`${apiUrl}/${recipe.id}/information`, { params: { apiKey } });
-        setRecipeDetail(response.data);
-      } catch (error) {
-        console.log(error);
-      }
-
+    const checkIfSaved = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "users", "testUser", "savedRecipes"));
         const found = querySnapshot.docs.find((doc) => doc.data().id === recipe.id);
@@ -109,7 +99,7 @@ export default function RecipeDetail() {
       }
     };
 
-    init();
+    checkIfSaved();
   }, [recipe.id]);
 
 
