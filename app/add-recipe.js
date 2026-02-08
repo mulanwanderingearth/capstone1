@@ -45,7 +45,6 @@ export default function AddRecipe() {
         handleChange('image', downloadUrl);
     };
     const handleChange = (field, value) => {
-
         setSavedRecipe(prev => ({
             ...prev,
             [field]: value
@@ -60,7 +59,6 @@ export default function AddRecipe() {
         return '';
     };
 
-    // 显示时：安全获取 instructions 文本
     const getInstructionsText = () => {
         const data = savedRecipe.analyzedInstructions;
         if (!data) return '';
@@ -102,8 +100,8 @@ export default function AddRecipe() {
                 cookingMinutes: savedRecipe.cookingMinutes || null,
                 readyInMinutes: savedRecipe.readyInMinutes || null,
                 summary: savedRecipe.summary,
-                extendedIngredients: savedRecipe.extendedIngredients || [],
-                analyzedInstructions: savedRecipe.analyzedInstructions || [],
+                extendedIngredients: ingredients || [],
+                analyzedInstructions: instructions || [],
                 notes: savedRecipe.notes || null,
                 createdAt: serverTimestamp(),
             };

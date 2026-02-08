@@ -328,8 +328,8 @@ const styles = StyleSheet.create({
 
   emptyText: {
     textAlign: 'center',
-    fontSize: 16,
-    color: '#999',
+    fontSize: 20,
+    color: '#fff',
     marginTop: 20,
   },
 })
