@@ -1,7 +1,8 @@
+import axios from 'axios';
+import LottieView from 'lottie-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SwipeListView } from 'react-native-swipe-list-view';
-// import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from "@/firebase/config";
 import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, serverTimestamp, updateDoc } from "firebase/firestore";
 
@@ -11,6 +12,9 @@ export default function Groceries() {
   const [editingItem, setEditingItem] = useState(null);
   const [editText, setEditText] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
+  const [generatedRecipe, setGeneratedRecipe] = useState(null);
   const rowMap = useRef({});
   const itemsChecked = items.filter(item => item.checked);
   const itemsUnchecked = items.filter(item=> !item.checked);
@@ -108,14 +112,12 @@ const handleToggleChecked = async(id) => {
   }
 };
 
-// 编辑单个项
 const handleEditItem = (item) => {
   setEditingItem(item);
   setEditText(item.ingredient);
   setShowEditModal(true);
 };
 
-// 确认编辑
 const handleConfirmEdit = async () => {
   if (editText && editText !== editingItem.ingredient) {
     await handleUpdateItem(editingItem.id, editText);
@@ -123,8 +125,7 @@ const handleConfirmEdit = async () => {
   setShowEditModal(false);
   setEditingItem(null);
   setEditText("");
-  
-  // 关闭 SwipeListView 的行
+
   setTimeout(() => {
     if (editingItem && editingItem.checked) {
       rowMap.current.checked?.closeAllOpenRows();
@@ -134,7 +135,6 @@ const handleConfirmEdit = async () => {
   }, 100);
 };
 
-// 更新项目
 const handleUpdateItem = async (id, newIngredient) => {
   try {
     await updateDoc(doc(db, "users", "testUser", "groceryItems", id), {
@@ -146,7 +146,6 @@ const handleUpdateItem = async (id, newIngredient) => {
   }
 };
 
-// 删除单个项
 const handleDeleteItem = async (id) => {
   Alert.alert(
     "Delete Item",
@@ -167,6 +166,63 @@ const handleDeleteItem = async (id) => {
       }
     ]
   );
+};
+
+const generateRecipeWithGemini = async () => {
+  if (itemsChecked.length === 0) {
+    Alert.alert("No Ingredients", "Please add items to your cart first!");
+    return;
+  }
+  
+  setIsLoadingRecipe(true);
+  setShowGenerateModal(true);
+  setGeneratedRecipe(null);
+  
+  const ingredientsList = itemsChecked.map(item => item.ingredient).join(", ");
+  
+  try {
+    const prompt = `Create a detailed recipe using these ingredients: ${ingredientsList}. Provide the response in this exact format:
+
+Recipe Title: [name]
+Prep Time: [time]
+Cook Time: [time]
+Servings: [number]
+
+Ingredients:
+[list each ingredient with quantity]
+
+Instructions:
+[step-by-step instructions numbered]
+
+Tips:
+[any helpful tips]
+
+Make it practical, delicious, and easy to follow! Make the recipe less than 200 words.`;
+    
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.EXPO_PUBLIC_GEMINI_API_KEY}`,
+      {
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ]
+      }
+    );
+    
+    const recipe = response.data.candidates[0].content.parts[0].text;
+    setGeneratedRecipe(recipe);
+  } catch (error) {
+    console.log('Error generating recipe:', error);
+    Alert.alert("Error", "Failed to generate recipe. Please try again!");
+    setShowGenerateModal(false);
+  } finally {
+    setIsLoadingRecipe(false);
+  }
 };
   useEffect(()=>{
     const unsubscribe = onSnapshot(
@@ -192,6 +248,21 @@ const handleDeleteItem = async (id) => {
         <Text style={styles.itemCount}>To Buy: {itemsUnchecked.length}  |  In Cart: {itemsChecked.length}</Text>
       </View>
       <ScrollView style={styles.scrollContent}>
+      {itemsChecked.length > 0 && (
+        <View style={styles.aiRecipeCard}>
+          <Text style={styles.aiCardTitle}>🤖 Not sure what to cook?</Text>
+          <Text style={styles.aiCardSubtitle}>Generate a recipe with what you have in cart!</Text>
+          <TouchableOpacity 
+            style={[styles.generateButton, isLoadingRecipe && styles.generateButtonDisabled]}
+            onPress={generateRecipeWithGemini}
+            disabled={isLoadingRecipe}
+          >
+            <Text style={styles.generateButtonText}>
+              {isLoadingRecipe ? "🪄 Casting Spell..." : "🧙 Cast Magic Spell"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <View style={styles.addContainer}>
       <TextInput
       style={styles.input}
@@ -331,6 +402,44 @@ const handleDeleteItem = async (id) => {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={showGenerateModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => !isLoadingRecipe && setShowGenerateModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.recipeModalContent}>
+            {isLoadingRecipe ? (
+              <View style={styles.loadingContainer}>
+                <LottieView
+                  source={require('@/assets/Cooking.json')}
+                  autoPlay
+                  loop
+                  style={styles.lottieAnimation}
+                />
+                <Text style={styles.loadingText}>Brewing magical recipe...</Text>
+              </View>
+            ) : generatedRecipe ? (
+              <>
+                <ScrollView style={styles.recipeScroll}>
+                  <Text style={styles.recipeContent}>{generatedRecipe}</Text>
+                </ScrollView>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => {
+                    setShowGenerateModal(false);
+                    setGeneratedRecipe(null);
+                  }}
+                >
+                  <Text style={styles.closeButtonText}>Close</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </View>
   )
   }
@@ -449,8 +558,7 @@ itemText:{
 itemTextChecked:{
   fontSize:18,
   color:'#999',
-  flex:1
-  
+  flex:1  
 },
 hiddenRowContainer:{
   flex: 1,
@@ -461,7 +569,6 @@ hiddenRowContainer:{
   backgroundColor: '#f0f0f0',
 },
 editButton:{
-  // backgroundColor: '#4A90E2',
   width: 50,
   height: '100%',
   justifyContent: 'center',
@@ -527,5 +634,91 @@ modalButtonText:{
   fontSize: 14,
   fontWeight: '600',
   color: '#333',
+},
+aiRecipeCard: {
+  marginHorizontal: 20,
+  marginVertical: 20,
+  backgroundColor: '#FFE8D6',
+  borderRadius: 12,
+  padding: 16,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+},
+aiCardTitle: {
+  fontSize: 18,
+  fontWeight: '700',
+  color: '#333',
+  marginBottom: 6,
+},
+aiCardSubtitle: {
+  fontSize: 14,
+  color: '#666',
+  marginBottom: 12,
+  lineHeight: 20,
+},
+generateButton: {
+  backgroundColor: '#FF8C00',
+  paddingVertical: 12,
+  borderRadius: 8,
+  alignItems: 'center',
+},
+generateButtonDisabled: {
+  backgroundColor: '#CCB8A0',
+  opacity: 0.7,
+},
+generateButtonText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: '600',
+},
+recipeModalContent: {
+  backgroundColor: '#fff',
+  borderRadius: 12,
+  padding: 20,
+  width: '90%',
+  maxHeight: '80%',
+  justifyContent: 'space-between',
+},
+loadingContainer: {
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 40,
+},
+lottieAnimation: {
+  width: 200,
+  height: 200,
+  marginBottom: 20,
+},
+loadingEmoji: {
+  fontSize: 60,
+  marginBottom: 15,
+},
+loadingText: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#333',
+  textAlign: 'center',
+},
+recipeScroll: {
+  marginBottom: 15,
+  maxHeight: 400,
+},
+recipeContent: {
+  fontSize: 14,
+  color: '#555',
+  lineHeight: 22,
+},
+closeButton: {
+  backgroundColor: '#FF8C00',
+  paddingVertical: 12,
+  borderRadius: 8,
+  alignItems: 'center',
+},
+closeButtonText: {
+  color: '#fff',
+  fontSize: 14,
+  fontWeight: '600',
 },
 })

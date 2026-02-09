@@ -61,7 +61,6 @@ function SearchHeader({
 }
 
 export default function Index() {
-  // const { toggleDarkMode } = useTheme();
   const [text, setText] = useState('');
   const [recipes, setRecipes] = useState(null);
   const [searchType, setSearchType] = useState('title');
@@ -73,7 +72,7 @@ export default function Index() {
       const response = await axios.get(`${apiUrl}/random`, {
         params: {
           apiKey: apiKey,
-          number: 1,
+          number: 5,
         }
       });
       setRecommendations(response.data.recipes || []);
