@@ -42,7 +42,7 @@ export default function Index() {
       })
   }
 
-  // 获取菜谱详情
+
   const handleRecipePress = async (item) => {
     try {
       const response = await axios.get(`${apiUrl}/${item.id}/information`, { params: { apiKey } });

@@ -1,54 +1,72 @@
 
 
-import { collection, getDocs,  } from "firebase/firestore";
-import { db } from "@/firebase/config"; 
-import { useRouter,useFocusEffect } from 'expo-router';
-import { useState, React, Alert} from "react";
-import { StyleSheet, Text, TextInput, View, FlatList, Image, TouchableOpacity } from "react-native";
-// import { stripHtml } from '@/utils/htmlUtils';
+import { db } from "@/firebase/config";
+import { useFocusEffect, useRouter } from 'expo-router';
+import { collection, getDocs, } from "firebase/firestore";
+import { Alert, React, useState } from "react";
+import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function Recipe() {
-    const router = useRouter();
-    const [text, setText] = useState('');
-    const [savedRecipes,setSavedRecipes] = useState([]);
+  const router = useRouter();
+  const [text, setText] = useState('');
+  const [savedRecipes, setSavedRecipes] = useState([]);
+  const [filteredRecipes, setFilteredRecipes] = useState([]);
 
-    const getAllSavedRecipes = async()=> {
-        const querySnapshot = await getDocs(collection(db,"users","testUser","savedRecipes"));
-        const recipes = [];
-      try {
-        querySnapshot.forEach((doc)=>{
-            recipes.push({docId:doc.id, ...doc.data()})
-        });
-        setSavedRecipes(recipes);
-    }catch(err){
-        console.error(err);
-        Alert.alert("Error", String(err));
-    }};
+  const getAllSavedRecipes = async () => {
+    const querySnapshot = await getDocs(collection(db, "users", "testUser", "savedRecipes"));
+    const recipes = [];
+    try {
+      querySnapshot.forEach((doc) => {
+        recipes.push({ docId: doc.id, ...doc.data() })
+      });
+      setSavedRecipes(recipes);
+      setFilteredRecipes(recipes);
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", String(err));
+    }
+  };
 
-    useFocusEffect(
-        React.useCallback(()=>{
-             getAllSavedRecipes();
-        },[])
-        );
+  const handleSearch = (keyword) => {
+    setText(keyword);
+    if (keyword.trim() === '') {
+      setFilteredRecipes(savedRecipes);
+    } else {
+      const keyword_lower = keyword.toLowerCase();
+      const filtered = savedRecipes.filter(recipe => 
+        JSON.stringify(recipe).toLowerCase().includes(keyword_lower)
+      );
+      setFilteredRecipes(filtered);
+    }
+  };
 
-    return (
-        <View style={styles.container}>
-          <Text style={styles.header}> All </Text>
-        <View style={styles.searchContainer}>
+  useFocusEffect(
+    React.useCallback(() => {
+      getAllSavedRecipes();
+    }, [])
+  );
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.headerContainer}>
+        <Text style={styles.header}>My Recipes</Text>
+        <Text style={styles.recipeCount}>{filteredRecipes.length} recipes</Text>
+      </View>
+      <View style={styles.searchContainer}>
         <TextInput
-          placeholder="🔍Search for Saved Recipes!"
-          onChangeText={newText => setText(newText)}
+          placeholder="🔍 Search recipes..."
+          onChangeText={handleSearch}
           value={text}
           style={styles.input}
-        //   onSubmitEditing={() => handleSearch(searchType)}
           returnKeyType="search"
+          placeholderTextColor="#999"
         />
-         </View>
-        
-         
-        <FlatList
+      </View>
+
+
+      <FlatList
         style={styles.flatListContainer}
-        data={savedRecipes}
+        data={filteredRecipes}
         keyExtractor={(item) => item.docId.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity onPress={() => router.push({
@@ -60,76 +78,108 @@ export default function Recipe() {
                 source={{ uri: item.image }}
                 style={styles.recipeImage}
               />
-              <Text style={styles.recipeTitle}>{item.title}</Text>
-              <Text style={styles.recipeTime}>⏱ {item.readyInMinutes} mins</Text>
-               <Text style={styles.recipeNotes}>✍️{item.notes}</Text>
+              <View style={styles.cardContent}>
+                <Text style={styles.recipeTitle}>{item.title}</Text>
+                <View style={styles.recipeMetaContainer}>
+                  <Text style={styles.recipeTime}>⏱ {item.readyInMinutes} mins</Text>
+                  {item.notes && <Text style={styles.recipeNotes}>✍️ {item.notes}</Text>}
+                </View>
+              </View>
             </View>
           </TouchableOpacity>
 
         )}
         ListEmptyComponent={<Text style={styles.emptyText}>No recipes found.</Text>}
       />
-</View>
-    );
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
+  container: {
     flex: 1,
-    backgroundColor: "coral",
+    backgroundColor: '#eeeeee',
   },
-    header: {
-    marginTop: 50,
-    borderWidth:1,
-    fontSize:20,
-    padding:10,
-    bold:true,
-},
+  headerContainer: {
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  header: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  recipeCount: {
+    fontSize: 14,
+    color: '#999',
+  },
   searchContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderWidth:1,
+    paddingVertical: 12,
+    backgroundColor: '#eeeeee',
   },
-   input: {
+  input: {
     width: '100%',
-    height: 40,
-    borderColor: 'gray',
+    height: 44,
+    borderColor: '#e0e0e0',
     borderWidth: 1,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: 'white',
-    
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    fontSize: 16,
+    color: '#333',
   },
   flatListContainer: {
     flex: 1,
+    paddingHorizontal: 15,
   },
   recipeCard: {
-    padding: 10,
-    marginHorizontal: 10,
-    marginVertical: 5,
-    backgroundColor: 'white',
-    borderRadius: 8,
+    marginVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
   },
   recipeImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 8,
-    marginBottom: 10,
+    height: 180,
+    resizeMode: 'cover',
+  },
+  cardContent: {
+    padding: 14,
   },
   recipeTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  recipeMetaContainer: {
+    flexDirection: 'column',
+    gap: 6,
   },
   recipeTime: {
-    fontSize: 14,
-    color: 'gray',
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
   },
   recipeNotes: {
-    fontSize: 14,
-    color: 'gray'
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
   },
   emptyText: {
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: 40,
+    fontSize: 16,
+    color: '#999',
   },
 });

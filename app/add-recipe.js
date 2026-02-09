@@ -103,6 +103,7 @@ export default function AddRecipe() {
                 extendedIngredients: ingredients || [],
                 analyzedInstructions: instructions || [],
                 notes: savedRecipe.notes || null,
+                categories:savedRecipe.categories || null,
                 createdAt: serverTimestamp(),
             };
 
@@ -126,16 +127,19 @@ export default function AddRecipe() {
         <View style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity
+                    style={styles.cancelButton}
                     onPress={() => {
                         router.back();
                     }}>
-                    <Text style={styles.headerButton}>CANCEL</Text>
+                    <Text style={styles.cancelButtonText}>CANCEL</Text>
                 </TouchableOpacity>
+               
                 <TouchableOpacity
+                    style={styles.saveButton}
                     onPress={() => {
                         handleSave();
                     }}>
-                    <Text style={styles.headerButton}>SAVE THIS RECIPE</Text>
+                    <Text style={styles.saveButtonText}>SAVE</Text>
                 </TouchableOpacity>
             </View>
 
@@ -174,7 +178,13 @@ export default function AddRecipe() {
                         onChangeText={(value) => handleChange('sourceName', value)}
                     />
                 </View>
-
+                <View style={styles.field}>
+                    <Text style={styles.label}>CATEGORIES</Text>
+                    <TextInput style={styles.input} multiline={true} numberOfLines={12}
+                        value={savedRecipe.categories || ''}
+                        onChangeText={(value) => handleChange('categories', value)}
+                    />
+                </View>
                 <View style={styles.field}>
                     <Text style={styles.label}>SERVINGS</Text>
                     <TextInput style={styles.input} keyboardType="numeric"
@@ -238,6 +248,7 @@ export default function AddRecipe() {
                         onChangeText={(value) => handleChange('notes', value)}
                     />
                 </View>
+                
             </ScrollView>
         </View>
     )
@@ -246,25 +257,53 @@ export default function AddRecipe() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'coral',
+        backgroundColor: '#ffffff',
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingTop: 10,
+        paddingTop: 45,
         paddingHorizontal: 15,
+        paddingBottom: 15,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
     },
-    headerButton: {
-        fontSize: 18,
-        color: '#007AFF',
-        marginTop: 30
+    cancelButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        backgroundColor: '#FFE5E5',
+        borderRadius: 8,
+    },
+    cancelButtonText: {
+        fontSize: 14,
+        color: '#FF6B6B',
+        fontWeight: '700',
+    },
+    backArrowButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+    },
+    backArrowText: {
+        fontSize: 24,
+        color: '#FF6B6B',
+        fontWeight: '600',
+    },
+    saveButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        backgroundColor: '#FF6B6B',
+        borderRadius: 8,
+    },
+    saveButtonText: {
+        fontSize: 14,
+        color: '#ffffff',
+        fontWeight: '700',
     },
     scrollView: {
         flex: 1,
-        padding: 15,
+        paddingHorizontal: 20,
+        paddingVertical: 15,
     },
     image: {
         width: 120,
@@ -294,37 +333,41 @@ const styles = StyleSheet.create({
         width: 120,
         height: 120,
         borderRadius: 8,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: '#f5f5f5',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.3)',
+        borderColor: '#ddd',
         justifyContent: 'center',
         alignItems: 'center',
     },
     addImageIcon: {
-        fontSize: 30,
-        color: 'rgba(255,255,255,0.5)',
+        fontSize: 28,
+        color: '#ccc',
+        fontWeight: 'bold',
     },
     addImageText: {
         fontSize: 12,
-        color: 'rgba(255,255,255,0.5)',
+        color: '#999',
         marginTop: 5,
     },
     field: {
-        marginBottom: 15,
+        marginBottom: 20,
     },
     label: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 5,
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#FF6B6B',
+        marginBottom: 10,
+        letterSpacing: 0.5,
     },
     input: {
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: '#ddd',
         borderRadius: 8,
-        padding: 10,
-        fontSize: 14,
-        backgroundColor: 'white',
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        fontSize: 16,
+        backgroundColor: '#ffffff',
+        color: '#333',
     },
     recipeImage: {
         width: '100%',
