@@ -175,7 +175,6 @@ export default function RecipeDetail() {
             style={[styles.actionButton, styles.groceriesButton]}
             onPress={async () => {
               await handleSaveGroceries();
-              router.push('/groceries');
             }}
           >
             <View style={styles.addButton}>
@@ -187,6 +186,12 @@ export default function RecipeDetail() {
 
         {recipe.summary && (
           <Text style={styles.summaryText}>{stripHtml(recipe.summary)}</Text>
+        )}
+        {recipeDetail?.categories && recipeDetail.categories !== null && (
+          <>
+            <Text style={styles.categoriesTitle}>CATEGORIES</Text>
+            <Text style={styles.categoriesText}>{recipeDetail.categories}</Text>
+          </>
         )}
 
         {recipeDetail?.extendedIngredients && recipeDetail.extendedIngredients.length > 0 && (
@@ -211,10 +216,18 @@ export default function RecipeDetail() {
                 <Text style={styles.instructionStep}>{item.step}</Text>
               </View>
             ))}
-            <View style={{ height: 40 }} />
           </>
         )}
-        
+
+        {recipeDetail?.notes && recipeDetail.notes !== null && (
+          <>
+            <Text style={styles.notesTitle}>NOTES</Text>
+            <Text style={styles.notesText}>{recipeDetail.notes}</Text>
+          </>
+        )}
+
+        <View style={{ height: 40 }} />
+
       </ScrollView>
     </View>
   );
@@ -236,19 +249,19 @@ const styles = StyleSheet.create({
   },
   backButton: {
     fontSize: 20,
-    color: '#FF6B6B',
+    color: '#FF8C00',
     marginTop: 30,
     fontWeight: '800',
-  }, 
+  },
   addRecipeButton: {
     fontSize: 14,
-    color: '#FF6B6B',
+    color: '#FF8C00',
     marginTop: 30,
     fontWeight: '700',
-  }, 
+  },
   menuButton: {
     fontSize: 24,
-    color: '#FF6B6B',
+    color: '#FF8C00',
     marginTop: 30,
     fontWeight: '800',
   },
@@ -337,7 +350,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 15,
     marginVertical: 20,
     paddingVertical: 14,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF8C00',
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -362,14 +375,14 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF8C00',
     marginRight: 8,
   },
   playButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF8C00',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
@@ -383,7 +396,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF8C00',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
@@ -397,7 +410,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF8C00',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
@@ -430,10 +443,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF8C00',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#FF6B6B',
+    shadowColor: '#FF8C00',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -447,10 +460,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF8C00',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#FF6B6B',
+    shadowColor: '#FF8C00',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -490,7 +503,7 @@ const styles = StyleSheet.create({
   ingredientsTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FF6B6B',
+    color: '#FF8C00',
     paddingHorizontal: 20,
     marginTop: 20,
     marginBottom: 12,
@@ -506,7 +519,7 @@ const styles = StyleSheet.create({
   ingredientAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FF6B6B',
+    color: '#FF8C00',
     marginRight: 4,
   },
   ingredientUnit: {
@@ -536,7 +549,7 @@ const styles = StyleSheet.create({
   instructionsTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FF6B6B',
+    color: '#FF8C00',
     paddingHorizontal: 20,
     marginTop: 20,
     marginBottom: 12,
@@ -552,7 +565,7 @@ const styles = StyleSheet.create({
   instructionNumber: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FF6B6B',
+    color: '#FF8C00',
     marginRight: 10,
     minWidth: 24,
   },
@@ -569,5 +582,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
     lineHeight: 22,
+  },
+  categoriesTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FF8C00',
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  categoriesText: {
+    fontSize: 16,
+    color: '#333',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    lineHeight: 24,
+  },
+  notesTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FF8C00',
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  notesText: {
+    fontSize: 16,
+    color: '#333',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    lineHeight: 24,
   },
 });

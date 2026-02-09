@@ -335,10 +335,6 @@ const handleDeleteItem = async (id) => {
   )
   }
 
-
-
-
-
 const styles = StyleSheet.create({
   container: {
         flex: 1,

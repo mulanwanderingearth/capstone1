@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     },
     cancelButtonText: {
         fontSize: 14,
-        color: '#FF6B6B',
+        color: '#FF8C00',
         fontWeight: '700',
     },
     backArrowButton: {
@@ -286,13 +286,13 @@ const styles = StyleSheet.create({
     },
     backArrowText: {
         fontSize: 24,
-        color: '#FF6B6B',
+        color: '#FF8C00',
         fontWeight: '600',
     },
     saveButton: {
         paddingVertical: 10,
         paddingHorizontal: 20,
-        backgroundColor: '#FF6B6B',
+        backgroundColor: '#FF8C00',
         borderRadius: 8,
     },
     saveButtonText: {
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#FF6B6B',
+        color: '#FF8C00',
         marginBottom: 10,
         letterSpacing: 0.5,
     },
