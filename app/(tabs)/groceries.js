@@ -3,7 +3,7 @@ import LottieView from 'lottie-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SwipeListView } from 'react-native-swipe-list-view';
-import { db } from "@/firebase/config";
+import { db, auth } from "@/firebase/config";
 import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, serverTimestamp, updateDoc } from "firebase/firestore";
 
 export default function Groceries() {
@@ -20,7 +20,8 @@ export default function Groceries() {
   const itemsUnchecked = items.filter(item=> !item.checked);
 
   const getAllGroceries = async () => {
-    const querySnapshot = await getDocs(collection(db, "users", "testUser", "groceryItems"));
+    const userId = auth.currentUser?.uid;
+    const querySnapshot = await getDocs(collection(db, "users", userId, "groceryItems"));
     const allItems = querySnapshot.docs.map(doc => ({
       id:doc.id,
       ...doc.data()
@@ -29,7 +30,7 @@ export default function Groceries() {
   }
   
   const handleAddNewItem = async() => {
-    const userId = "testUser";
+    const userId = auth.currentUser?.uid;
     const ref = collection(db, "users", userId, "groceryItems");
     try {
       await addDoc(ref,{
@@ -44,6 +45,7 @@ export default function Groceries() {
     }
   };
   const handleClearChecked = async ()=> {
+    const userId = auth.currentUser?.uid;
     Alert.alert(
       "Confirm Delete",
       "Are you sure you want to delete all grocery items in the cart?",
@@ -55,7 +57,7 @@ export default function Groceries() {
           onPress: async () => {
             try {
               const deletePromises = itemsChecked.map(item =>
-                deleteDoc(doc(db, "users", "testUser", "groceryItems", item.id))
+                deleteDoc(doc(db, "users", userId, "groceryItems", item.id))
               );
               await Promise.all(deletePromises);
               getAllGroceries();
@@ -80,9 +82,10 @@ export default function Groceries() {
           style: "destructive",
           onPress: async () => {
             try {
-              const querySnapshot = await getDocs(collection(db, "users", "testUser", "groceryItems"));
+              const userId = auth.currentUser?.uid;
+              const querySnapshot = await getDocs(collection(db, "users", userId, "groceryItems"));
               const deletePromises = querySnapshot.docs.map(item =>
-                deleteDoc(doc(db, "users", "testUser", "groceryItems", item.id))
+                deleteDoc(doc(db, "users", userId, "groceryItems", item.id))
               );
               await Promise.all(deletePromises);
               setItems([]);
@@ -104,7 +107,8 @@ const handleToggleChecked = async(id) => {
 );
   setItems(result);
   const currentItem = items.find(item => item.id===id);
-  await updateDoc(doc(db, "users", "testUser", "groceryItems",id),{
+  const userId = auth.currentUser?.uid;
+  await updateDoc(doc(db, "users", userId, "groceryItems",id),{
     checked:!currentItem.checked
   });
   } catch (err){
@@ -137,7 +141,8 @@ const handleConfirmEdit = async () => {
 
 const handleUpdateItem = async (id, newIngredient) => {
   try {
-    await updateDoc(doc(db, "users", "testUser", "groceryItems", id), {
+    const userId = auth.currentUser?.uid;
+    await updateDoc(doc(db, "users", userId, "groceryItems", id), {
       ingredient: newIngredient
     });
     getAllGroceries();
@@ -147,6 +152,7 @@ const handleUpdateItem = async (id, newIngredient) => {
 };
 
 const handleDeleteItem = async (id) => {
+  const userId = auth.currentUser?.uid;
   Alert.alert(
     "Delete Item",
     "Are you sure you want to delete this item?",
@@ -157,7 +163,7 @@ const handleDeleteItem = async (id) => {
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteDoc(doc(db, "users", "testUser", "groceryItems", id));
+            await deleteDoc(doc(db, "users", userId, "groceryItems", id));
             getAllGroceries();
           } catch (err) {
             Alert.alert("Error", String(err));
@@ -181,6 +187,7 @@ const generateRecipeWithGemini = async () => {
   const ingredientsList = itemsChecked.map(item => item.ingredient).join(", ");
   
   try {
+
     const prompt = `Create a detailed recipe using these ingredients: ${ingredientsList}. Provide the response in this exact format:
 
 Recipe Title: [name]
@@ -218,6 +225,9 @@ Make it practical, delicious, and easy to follow! Make the recipe less than 200 
     setGeneratedRecipe(recipe);
   } catch (error) {
     console.log('Error generating recipe:', error);
+        console.log('Attention', error.response?.data);
+
+    
     Alert.alert("Error", "Failed to generate recipe. Please try again!");
     setShowGenerateModal(false);
   } finally {
@@ -225,8 +235,9 @@ Make it practical, delicious, and easy to follow! Make the recipe less than 200 
   }
 };
   useEffect(()=>{
+    const userId = auth.currentUser?.uid;
     const unsubscribe = onSnapshot(
-      collection(db,"users","testUser","groceryItems"),
+      collection(db,"users",userId,"groceryItems"),
       (querySnapshot) => {
         const allItems =querySnapshot.docs.map(doc =>({
           id: doc.id,
@@ -248,7 +259,7 @@ Make it practical, delicious, and easy to follow! Make the recipe less than 200 
         <Text style={styles.itemCount}>To Buy: {itemsUnchecked.length}  |  In Cart: {itemsChecked.length}</Text>
       </View>
       <ScrollView style={styles.scrollContent}>
-      {itemsChecked.length > 0 && (
+      
         <View style={styles.aiRecipeCard}>
           <Text style={styles.aiCardTitle}>🤖 Not sure what to cook?</Text>
           <Text style={styles.aiCardSubtitle}>Generate a recipe with what you have in cart!</Text>
@@ -262,7 +273,7 @@ Make it practical, delicious, and easy to follow! Make the recipe less than 200 
             </Text>
           </TouchableOpacity>
         </View>
-      )}
+      
       <View style={styles.addContainer}>
       <TextInput
       style={styles.input}

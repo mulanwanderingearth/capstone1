@@ -1,4 +1,4 @@
-import { db } from "@/firebase/config";
+import { db, auth } from "@/firebase/config";
 import { stripHtml } from '@/utils/htmlUtils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { addDoc, collection, deleteDoc, doc, getDocs, query, serverTimestamp, where } from "firebase/firestore";
@@ -15,8 +15,9 @@ export default function RecipeDetail() {
   useEffect(() => {
     const checkIfSaved = async () => {
       try {
+        const userId = auth.currentUser?.uid;
         const q = query(
-          collection(db, "users", "testUser", "savedRecipes"),
+          collection(db, "users", userId, "savedRecipes"),
           where("id", "==", recipe.id)
         );
         const snapshot = await getDocs(q);
@@ -69,7 +70,8 @@ export default function RecipeDetail() {
           text: 'Delete',
           onPress: async () => {
             try {
-              await deleteDoc(doc(db, 'users', 'testUser', 'savedRecipes', savedRecipeId))
+              const userId = auth.currentUser?.uid;
+              await deleteDoc(doc(db, 'users', userId, 'savedRecipes', savedRecipeId))
               Alert.alert('Successfully deleted!')
               router.back();
             } catch (err) {
@@ -83,7 +85,7 @@ export default function RecipeDetail() {
   }
   const handleSaveGroceries = async () => {
     try {
-      const userId = "testUser";
+      const userId = auth.currentUser?.uid;
       const ref = collection(db, "users", userId, "groceryItems");
       const writes = recipeDetail.extendedIngredients.map((item) =>
         addDoc(ref, {

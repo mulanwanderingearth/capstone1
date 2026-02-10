@@ -1,4 +1,4 @@
-import { db, storage } from "@/firebase/config";
+import { db, storage, auth } from "@/firebase/config";
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
@@ -37,7 +37,7 @@ export default function AddRecipe() {
     const uploadImage = async (uri) => {
         const response = await fetch(uri);
         const blob = await response.blob();
-        const userId = "testUser";
+        const userId = auth.currentUser?.uid;
         const filename = `users/${userId}/recipes/${Date.now()}.jpg`;
         const storageRef = ref(storage, filename);
         await uploadBytes(storageRef, blob);
@@ -51,7 +51,7 @@ export default function AddRecipe() {
         }))
     };
 
-     const getIngredientsText = () => {
+    const getIngredientsText = () => {
         const data = savedRecipe.extendedIngredients;
         if (!data) return '';
         if (typeof data === 'string') return data;
@@ -71,9 +71,9 @@ export default function AddRecipe() {
 
     const handleSave = async () => {
         try {
-            const userId = "testUser";
+            const userId = auth.currentUser?.uid;
             const ref = collection(db, "users", userId, "savedRecipes");
-            
+
             let ingredients = savedRecipe.extendedIngredients;
             if (typeof ingredients === 'string') {
                 ingredients = ingredients.split('\n').filter(line => line.trim()).map(line => ({
@@ -89,7 +89,7 @@ export default function AddRecipe() {
                 }));
                 instructions = [{ steps }];
             }
-            
+
             const cleanData = {
                 id: savedRecipe.id,
                 title: savedRecipe.title,
@@ -103,12 +103,13 @@ export default function AddRecipe() {
                 extendedIngredients: ingredients || [],
                 analyzedInstructions: instructions || [],
                 notes: savedRecipe.notes || null,
-                categories:savedRecipe.categories || null,
+                categories: savedRecipe.categories || null,
                 createdAt: serverTimestamp(),
             };
 
             if (isEditing) {
-                await updateDoc(doc(db, 'users', 'testUser', 'savedRecipes', recipe.docId), cleanData);
+                const userId = auth.currentUser?.uid;
+                await updateDoc(doc(db, 'users', userId, 'savedRecipes', recipe.docId), cleanData);
                 Alert.alert("Success! You update a recipe!")
                 router.push('./(tabs)/recipe');
             } else {
@@ -133,7 +134,7 @@ export default function AddRecipe() {
                     }}>
                     <Text style={styles.cancelButtonText}>CANCEL</Text>
                 </TouchableOpacity>
-               
+
                 <TouchableOpacity
                     style={styles.saveButton}
                     onPress={() => {
@@ -248,7 +249,7 @@ export default function AddRecipe() {
                         onChangeText={(value) => handleChange('notes', value)}
                     />
                 </View>
-                
+
             </ScrollView>
         </View>
     )

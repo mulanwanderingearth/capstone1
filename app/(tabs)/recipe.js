@@ -1,6 +1,6 @@
 
 
-import { db } from "@/firebase/config";
+import { db,auth } from "@/firebase/config";
 import { useFocusEffect, useRouter } from 'expo-router';
 import { collection, getDocs, } from "firebase/firestore";
 import { Alert, React, useState } from "react";
@@ -13,7 +13,8 @@ export default function Recipe() {
   const [filteredRecipes, setFilteredRecipes] = useState([]);
 
   const getAllSavedRecipes = async () => {
-    const querySnapshot = await getDocs(collection(db, "users", "testUser", "savedRecipes"));
+    const userId = auth.currentUser?.uid;
+    const querySnapshot = await getDocs(collection(db, "users", userId, "savedRecipes"));
     const recipes = [];
     try {
       querySnapshot.forEach((doc) => {
