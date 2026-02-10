@@ -3,14 +3,10 @@ import axios from "axios";
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { logoutUser } from "@/firebase/auth";
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL
 const apiKey = process.env.EXPO_PUBLIC_API_KEY
-const handleLogout = async () => {
-  await logoutUser();
-  // 可选：router.replace("/login");
-};
+
 function SearchHeader({
   searchType,
   text,
@@ -207,11 +203,7 @@ export default function Index() {
           ListEmptyComponent={<Text style={styles.emptyText}>No recipes found.</Text>}
         />
       )}
-      <TouchableOpacity onPress={handleLogout}>
-  <Text>Logout</Text>
-</TouchableOpacity>
     </View>
-    
   );
 }
 

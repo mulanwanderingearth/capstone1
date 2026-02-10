@@ -4,7 +4,9 @@ import {
     signInWithEmailAndPassword,
     signOut
 } from 'firebase/auth';
-import { auth } from './config';
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+
+import {auth,db } from './config';
 
 /**
  * Register a new user
@@ -15,6 +17,12 @@ import { auth } from './config';
 export const registerUser = async (email, password) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    console.log("准备写入 Firestore", user.uid, user.email);
+    await setDoc(doc(db, "users", user.uid), {
+      email: user.email,
+      createdAt: serverTimestamp(),
+    });
     return {
       success: true,
       user: userCredential.user,

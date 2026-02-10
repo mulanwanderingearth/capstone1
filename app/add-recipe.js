@@ -70,8 +70,8 @@ export default function AddRecipe() {
     };
 
     const handleSave = async () => {
+        const userId = auth.currentUser?.uid;
         try {
-            const userId = auth.currentUser?.uid;
             const ref = collection(db, "users", userId, "savedRecipes");
 
             let ingredients = savedRecipe.extendedIngredients;
@@ -108,12 +108,10 @@ export default function AddRecipe() {
             };
 
             if (isEditing) {
-                const userId = auth.currentUser?.uid;
                 await updateDoc(doc(db, 'users', userId, 'savedRecipes', recipe.docId), cleanData);
                 Alert.alert("Success! You update a recipe!")
                 router.push('./(tabs)/recipe');
             } else {
-
                 await addDoc(ref, cleanData)
                 router.back();
                 Alert.alert("Success", `You just saved a recipe! `);
