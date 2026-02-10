@@ -1,5 +1,6 @@
 import { loginUser, validateLoginInputs } from '@/firebase/auth';
 import { useRouter } from 'expo-router';
+import LottieView from 'lottie-react-native';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -57,8 +58,13 @@ export default function Login() {
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>🧙</Text>
-          <Text style={styles.title}>Welcome Back!</Text>
+          <LottieView
+            source={require('@/assets/food.json')}
+            autoPlay
+            loop
+            style={styles.logoLottie}
+          />
+          <Text style={styles.title}>Welcome to Cookly!</Text>
           <Text style={styles.subtitle}>Sign in to continue</Text>
         </View>
 
@@ -138,8 +144,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  logo: {
-    fontSize: 60,
+  logoLottie: {
+    width: 140,
+    height: 140,
     marginBottom: 15,
   },
   title: {

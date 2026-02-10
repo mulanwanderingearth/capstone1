@@ -2,6 +2,7 @@ import { registerUser, validatePassword, validateSignupInputs } from '@/firebase
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import LottieView from 'lottie-react-native';
 
 export default function Signup() {
   const router = useRouter();
@@ -82,7 +83,12 @@ export default function Signup() {
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>🧙</Text>
+          <LottieView
+                      source={require('@/assets/Walking-burger.json')}
+                      autoPlay
+                      loop
+                      style={styles.logoLottie}
+                    />
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Join us to get started</Text>
         </View>
@@ -207,8 +213,9 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     marginTop: 20,
   },
-  logo: {
-    fontSize: 60,
+  logoLottie: {
+    width: 140,
+    height: 140,
     marginBottom: 15,
   },
   title: {
